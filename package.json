@@ -1,0 +1,12 @@
+{
+  "name": "booking-mobil-app",
+  "version": "1.0.0",
+  "scripts": {
+    "install-all": "npm install --prefix frontend && npm install --prefix backend",
+    "build": "npm run install-all && npm run build --prefix frontend",
+    "start": "npx concurrently \"npm start --prefix frontend\" \"npm start --prefix backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

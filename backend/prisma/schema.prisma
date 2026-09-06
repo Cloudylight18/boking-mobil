@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  image     String?  @db.Text  // Foto profil admin
+  role      Role     @default(ADMIN)
+}
+
+enum CarStatus {
+  AVAILABLE
+  MAINTENANCE   
+  UNAVAILABLE   
+}
+
+enum ServiceType {
+  WITH_DRIVER       // Mobil + Supir
+  CARTER_ALL_IN     // Mobil + Supir + Carter (Include tol, bensin, dll bersih)
+}
+
+model Car {
+  id                String                @id @default(uuid())
+  name              String
+  condition         String                @db.Text 
+  status            CarStatus             @default(AVAILABLE) 
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  images            CarImage[]
+  videos            CarVideo[]            // <-- Tabel video armada
+  destinationPrices CarDestinationPrice[] // Daftar harga fleksibel berdasarkan tujuan
+  terms             RentalTerm[]
+}
+
+model CarDestinationPrice {
+  id          String      @id @default(uuid())
+  carId       String
+  car         Car         @relation(fields: [carId], references: [id], onDelete: Cascade)
+  destination String      // Contoh: "Jakarta / Bandung", "Jawa Tengah"
+  serviceType ServiceType // Pilihan: WITH_DRIVER atau CARTER_ALL_IN
+  price       Int         // Contoh: 3500000, 4000000, 3700000
+  createdAt   DateTime    @default(now())
+}
+
+model CarImage {
+  id        String   @id @default(uuid())
+  carId     String
+  imageUrl  String   
+  isPrimary Boolean  @default(false) 
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+}
+
+model CarVideo {
+  id       String   @id @default(uuid())
+  carId    String
+  videoUrl String   
+  car      Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+}
+
+model RentalTerm {
+  id          String   @id @default(uuid())
+  carId       String
+  description String   @db.Text 
+  car         Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  customerName  String
+  address       String
+  carName       String
+  destination   String
+  travelDate    String   // Tanggal mulai keberangkatan
+  durationDays  Int      @default(1) // Lama waktu sewa dalam hari (misal: 3 hari)
+  dateDetails   String?  @db.Text   // Rincian tanggal apa saja
+  shiftTime     String
+  dpAmount      Int      @default(0)
+  remainingPay  Int      @default(0)
+  serviceType   String   // Menyimpan jenis layanan yang dipilih
+  createdAt     DateTime @default(now())
+}
+
+model AiKnowledge {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+  category  String   @default("Umum")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VisitorLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+}
