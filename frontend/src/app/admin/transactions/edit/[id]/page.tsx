@@ -37,11 +37,11 @@ export default function AdminTransactionEditPage() {
   const [selectedDestPriceId, setSelectedDestPriceId] = useState('');
   
   const [travelDate, setTravelDate] = useState('');
-  const [durationDays, setDurationDays] = useState<string>('1'); // Diubah ke string agar bebas dihapus/diketik di HP
+  const [durationDays, setDurationDays] = useState<string>('1'); 
   const [shiftTime, setShiftTime] = useState('');
   
   const [basePrice, setBasePrice] = useState<number>(0);
-  const [discountInput, setDiscountInput] = useState<string>('0'); // Diubah ke string agar bebas dihapus/diketik di HP
+  const [discountInput, setDiscountInput] = useState<string>('0'); 
   const [dpAmount, setDpAmount] = useState<string>('');
   const [remainingPay, setRemainingPay] = useState<number>(0);
   const [serviceType, setServiceType] = useState('Carter + Supir');
@@ -68,7 +68,7 @@ export default function AdminTransactionEditPage() {
           setDurationDays(String(found.durationDays || 1));
           setShiftTime(found.shiftTime);
           setDpAmount(found.dpAmount != null ? String(found.dpAmount) : '');
-          setDiscountInput(String(found.discountAmount || 0)); // Muat data diskon
+          setDiscountInput(String(found.discountAmount || 0)); 
           setServiceType(found.serviceType);
 
           const matchedCar = carList.find((c: Car) => c.name.toLowerCase() === found.carName.toLowerCase());

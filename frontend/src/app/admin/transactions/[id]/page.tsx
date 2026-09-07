@@ -35,7 +35,7 @@ export default function AdminTransactionDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // State untuk input diskon (menggunakan string & input text agar sangat mulus diketik/dihapus total di HP)
+  // State untuk input diskon (tipe string & text agar mulus di HP tanpa tombol panah)
   const [discountInput, setDiscountInput] = useState<string>('0');
 
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function AdminTransactionDetailPage() {
 
   // Kalkulasi Keuangan Dinamis dengan Diskon Rupiah
   const discountVal = discountInput === '' ? 0 : Number(discountInput);
-  const normalPrice = tx.dpAmount + tx.remainingPay; // Total harga awal sebelum diskon
+  const normalPrice = tx.dpAmount + tx.remainingPay + (tx.discountAmount || 0); // Total harga awal sebelum diskon
   const finalTotal = Math.max(0, normalPrice - discountVal);
   const calculatedRemaining = Math.max(0, finalTotal - tx.dpAmount);
 
@@ -241,7 +241,7 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Rincian Keuangan dengan Input Diskon Interaktif (Diubah ke text agar bebas diketik/dihapus di HP) */}
+        {/* Rincian Keuangan dengan Input Diskon Interaktif */}
         <div className="space-y-3 mb-6">
           <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Rincian Keuangan & Diskon</h4>
           <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-3 bg-slate-50 text-sm">
@@ -250,7 +250,7 @@ export default function AdminTransactionDetailPage() {
               <span className="font-bold text-slate-900">{formatRupiah(normalPrice)}</span>
             </div>
             
-            {/* Input Diskon Interaktif Ramah Mobile (Tipe Text) */}
+            {/* Input Diskon Interaktif Ramah Mobile (Tanpa tombol panah) */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t border-slate-200/60 print:hidden">
               <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">
                 <Percent size={14} /> Masukkan Diskon (Rp):
@@ -261,7 +261,7 @@ export default function AdminTransactionDetailPage() {
                 pattern="[0-9]*"
                 value={discountInput}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, ''); // Hanya mengizinkan angka
+                  const val = e.target.value.replace(/\D/g, ''); 
                   setDiscountInput(val);
                 }}
                 placeholder="0"
@@ -269,18 +269,11 @@ export default function AdminTransactionDetailPage() {
               />
             </div>
 
-            {/* Tampilan Diskon saat dicetak atau diunduh */}
-            <div className="hidden print:flex justify-between text-emerald-600 font-medium">
+            {/* Tampilan Diskon dengan Nominal Rupiah (Selalu tampil di cetak/download gambar) */}
+            <div className="flex justify-between text-emerald-600 font-medium">
               <span>Potongan Diskon Rupiah:</span>
               <span>(-) {formatRupiah(discountVal)}</span>
             </div>
-
-            {discountVal > 0 && (
-              <div className="flex justify-between text-emerald-600 font-medium print:hidden">
-                <span>Potongan Diskon:</span>
-                <span>(-) {formatRupiah(discountVal)}</span>
-              </div>
-            )}
 
             <div className="flex justify-between items-center text-slate-700 pt-2 border-t border-slate-200/60">
               <span className="font-semibold">Total Setelah Diskon:</span>

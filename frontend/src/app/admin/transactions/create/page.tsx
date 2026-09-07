@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, MapPin, Navigation, Clock, User, Home, Percent } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
@@ -34,11 +34,11 @@ export default function AdminTransactionCreatePage() {
   const [selectedDestPriceId, setSelectedDestPriceId] = useState('');
   
   const [travelDate, setTravelDate] = useState('');
-  const [durationDays, setDurationDays] = useState<string>('1'); // Diubah ke string agar bebas dihapus/diketik di HP
+  const [durationDays, setDurationDays] = useState<string>('1'); 
   const [shiftTime, setShiftTime] = useState('');
   
   const [basePrice, setBasePrice] = useState<number>(0);
-  const [discountInput, setDiscountInput] = useState<string>('0'); // Diubah ke string agar bebas dihapus/diketik di HP
+  const [discountInput, setDiscountInput] = useState<string>('0'); 
   const [dpAmount, setDpAmount] = useState<string>('');
   const [remainingPay, setRemainingPay] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -82,13 +82,14 @@ export default function AdminTransactionCreatePage() {
   }, [selectedDestPriceId, selectedCar, dpAmount, durationDays, discountInput]);
 
   const handleDpChange = (val: string) => {
-    setDpAmount(val);
+    const cleanVal = val.replace(/\D/g, '');
+    setDpAmount(cleanVal);
     const daysNum = durationDays === '' ? 1 : Number(durationDays);
     const unitPrice = selectedCar?.destinationPrices.find(dp => dp.id === selectedDestPriceId)?.price || 0;
     const currentBase = unitPrice * daysNum;
     const discountVal = discountInput === '' ? 0 : Number(discountInput);
     const finalPriceAfterDiscount = Math.max(0, currentBase - discountVal);
-    const dp = val === '' ? 0 : Number(val);
+    const dp = cleanVal === '' ? 0 : Number(cleanVal);
     setRemainingPay(Math.max(0, finalPriceAfterDiscount - dp));
   };
 
@@ -271,11 +272,12 @@ export default function AdminTransactionCreatePage() {
                 <Calendar size={14} className="text-indigo-500" /> Durasi (Hari)
               </label>
               <input 
-                type="number" 
-                min={1}
+                type="text" 
+                inputMode="numeric"
+                pattern="[0-9]*"
                 required
                 value={durationDays}
-                onChange={(e) => setDurationDays(e.target.value)}
+                onChange={(e) => setDurationDays(e.target.value.replace(/\D/g, ''))}
                 placeholder="1"
                 className={`w-full p-3.5 rounded-2xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
               />
@@ -309,11 +311,11 @@ export default function AdminTransactionCreatePage() {
                 <Percent size={14} /> Diskon / Potongan (Rp)
               </label>
               <input 
-                type="number"
-                min="0"
-                step="1000"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
+                onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="0"
                 className={`w-full p-3.5 rounded-2xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
               />
@@ -325,7 +327,9 @@ export default function AdminTransactionCreatePage() {
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75">Jumlah DP (Uang Muka)</label>
               <input 
-                type="number" 
+                type="text" 
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={dpAmount}
                 onChange={(e) => handleDpChange(e.target.value)}
                 placeholder="0" 
