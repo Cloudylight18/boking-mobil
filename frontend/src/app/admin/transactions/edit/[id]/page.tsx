@@ -311,6 +311,7 @@ export default function AdminTransactionEditPage() {
                 pattern="[0-9]*"
                 required
                 value={durationDays}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => setDurationDays(e.target.value.replace(/\D/g, ''))}
                 placeholder="1"
                 className={`w-full p-3.5 rounded-2xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
@@ -347,6 +348,7 @@ export default function AdminTransactionEditPage() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={discountInput}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="0"
                 className={`w-full p-3.5 rounded-2xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
@@ -363,6 +365,7 @@ export default function AdminTransactionEditPage() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={dpAmount}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => handleDpChange(e.target.value)}
                 placeholder="0"
                 className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
