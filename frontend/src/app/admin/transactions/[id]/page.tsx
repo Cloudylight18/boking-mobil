@@ -35,7 +35,7 @@ export default function AdminTransactionDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // State untuk input diskon (tipe string agar bisa diketik, dihapus total, dan mendukung panah atas/bawah)
+  // State untuk input diskon (menggunakan string & input text agar sangat mulus diketik/dihapus total di HP)
   const [discountInput, setDiscountInput] = useState<string>('0');
 
   useEffect(() => {
@@ -241,7 +241,7 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Rincian Keuangan dengan Input Diskon Interaktif (Dilengkapi Panah Atas/Bawah & Bebas Ketik/Hapus) */}
+        {/* Rincian Keuangan dengan Input Diskon Interaktif (Diubah ke text agar bebas diketik/dihapus di HP) */}
         <div className="space-y-3 mb-6">
           <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Rincian Keuangan & Diskon</h4>
           <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-3 bg-slate-50 text-sm">
@@ -250,17 +250,20 @@ export default function AdminTransactionDetailPage() {
               <span className="font-bold text-slate-900">{formatRupiah(normalPrice)}</span>
             </div>
             
-            {/* Input Diskon Interaktif dengan Tombol Panah (Spinner) */}
+            {/* Input Diskon Interaktif Ramah Mobile (Tipe Text) */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t border-slate-200/60 print:hidden">
               <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">
                 <Percent size={14} /> Masukkan Diskon (Rp):
               </span>
               <input 
-                type="number"
-                min="0"
-                step="1000"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, ''); // Hanya mengizinkan angka
+                  setDiscountInput(val);
+                }}
                 placeholder="0"
                 className="w-full sm:w-48 px-3 py-2 rounded-xl text-sm font-bold border border-slate-300 dark:border-slate-700 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-right"
               />

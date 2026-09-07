@@ -25,6 +25,7 @@ exports.createTransaction = async (req, res) => {
       durationDays, 
       dateDetails, 
       shiftTime, 
+      discountAmount, // Ditambahkan
       dpAmount, 
       remainingPay, 
       serviceType 
@@ -40,6 +41,7 @@ exports.createTransaction = async (req, res) => {
         durationDays: parseInt(durationDays) || 1,
         dateDetails: dateDetails || null,
         shiftTime,
+        discountAmount: parseInt(discountAmount) || 0, // Ditambahkan
         dpAmount: parseInt(dpAmount) || 0,
         remainingPay: parseInt(remainingPay) || 0,
         serviceType
@@ -72,6 +74,7 @@ exports.updateTransaction = async (req, res) => {
       durationDays, 
       dateDetails, 
       shiftTime, 
+      discountAmount, // Ditambahkan
       dpAmount, 
       remainingPay, 
       serviceType 
@@ -88,6 +91,7 @@ exports.updateTransaction = async (req, res) => {
         durationDays: parseInt(durationDays) || 1,
         dateDetails: dateDetails || null,
         shiftTime,
+        discountAmount: parseInt(discountAmount) || 0, // Ditambahkan
         dpAmount: parseInt(dpAmount) || 0,
         remainingPay: parseInt(remainingPay) || 0,
         serviceType

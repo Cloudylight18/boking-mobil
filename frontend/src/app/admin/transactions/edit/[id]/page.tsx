@@ -37,12 +37,12 @@ export default function AdminTransactionEditPage() {
   const [selectedDestPriceId, setSelectedDestPriceId] = useState('');
   
   const [travelDate, setTravelDate] = useState('');
-  const [durationDays, setDurationDays] = useState<number>(1);
+  const [durationDays, setDurationDays] = useState<string>('1'); // Diubah ke string agar bebas dihapus/diketik di HP
   const [shiftTime, setShiftTime] = useState('');
   
   const [basePrice, setBasePrice] = useState<number>(0);
-  const [discountInput, setDiscountInput] = useState<string>('0'); // Fitur Diskon Rupiah Interaktif
-  const [dpAmount, setDpAmount] = useState('');
+  const [discountInput, setDiscountInput] = useState<string>('0'); // Diubah ke string agar bebas dihapus/diketik di HP
+  const [dpAmount, setDpAmount] = useState<string>('');
   const [remainingPay, setRemainingPay] = useState<number>(0);
   const [serviceType, setServiceType] = useState('Carter + Supir');
   
@@ -65,9 +65,9 @@ export default function AdminTransactionEditPage() {
           setCustomerName(found.customerName);
           setAddress(found.address);
           setTravelDate(found.travelDate || '');
-          setDurationDays(found.durationDays || 1);
+          setDurationDays(String(found.durationDays || 1));
           setShiftTime(found.shiftTime);
-          setDpAmount(found.dpAmount.toString());
+          setDpAmount(found.dpAmount != null ? String(found.dpAmount) : '');
           setDiscountInput(String(found.discountAmount || 0)); // Muat data diskon
           setServiceType(found.serviceType);
 
@@ -104,13 +104,14 @@ export default function AdminTransactionEditPage() {
     const foundPriceObj = selectedCar.destinationPrices.find(dp => dp.id === selectedDestPriceId);
     if (foundPriceObj) {
       const unitPrice = Number(foundPriceObj.price || 0);
-      const totalCalculatedPrice = unitPrice * durationDays;
+      const daysNum = durationDays === '' ? 1 : Number(durationDays);
+      const totalCalculatedPrice = unitPrice * daysNum;
       
       setBasePrice(totalCalculatedPrice);
 
       const discountVal = discountInput === '' ? 0 : Number(discountInput);
       const finalPriceAfterDiscount = Math.max(0, totalCalculatedPrice - discountVal);
-      const dp = parseInt(dpAmount) || 0;
+      const dp = dpAmount === '' ? 0 : Number(dpAmount);
 
       setRemainingPay(Math.max(0, finalPriceAfterDiscount - dp));
     } else {
@@ -120,18 +121,23 @@ export default function AdminTransactionEditPage() {
   }, [selectedDestPriceId, selectedCar, dpAmount, durationDays, discountInput]);
 
   const handleDpChange = (val: string) => {
-    setDpAmount(val);
+    const cleanVal = val.replace(/\D/g, '');
+    setDpAmount(cleanVal);
+    const daysNum = durationDays === '' ? 1 : Number(durationDays);
+    const unitPrice = selectedCar?.destinationPrices.find(dp => dp.id === selectedDestPriceId)?.price || 0;
+    const currentBase = unitPrice * daysNum;
     const discountVal = discountInput === '' ? 0 : Number(discountInput);
-    const finalPriceAfterDiscount = Math.max(0, basePrice - discountVal);
-    const dp = parseInt(val) || 0;
+    const finalPriceAfterDiscount = Math.max(0, currentBase - discountVal);
+    const dp = cleanVal === '' ? 0 : Number(cleanVal);
     setRemainingPay(Math.max(0, finalPriceAfterDiscount - dp));
   };
 
   const generateDateDetails = () => {
     if (!travelDate) return '';
     const start = new Date(travelDate);
+    const daysNum = durationDays === '' ? 1 : Number(durationDays);
     const dates: string[] = [];
-    for (let i = 0; i < durationDays; i++) {
+    for (let i = 0; i < daysNum; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
       dates.push(d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }));
@@ -149,6 +155,8 @@ export default function AdminTransactionEditPage() {
     const selectedDestObj = selectedCar.destinationPrices.find(dp => dp.id === selectedDestPriceId);
     if (!selectedDestObj) return;
 
+    const daysNum = durationDays === '' ? 1 : Number(durationDays);
+
     setIsSaving(true);
     try {
       await API.put(`/api/transactions/${id}`, {
@@ -157,11 +165,11 @@ export default function AdminTransactionEditPage() {
         carName: selectedCar.name,
         destination: selectedDestObj.destination,
         travelDate,
-        durationDays: Number(durationDays),
+        durationDays: daysNum,
         dateDetails: generateDateDetails(),
         shiftTime,
         discountAmount: discountInput === '' ? 0 : Number(discountInput),
-        dpAmount: parseInt(dpAmount) || 0,
+        dpAmount: dpAmount === '' ? 0 : Number(dpAmount),
         remainingPay: remainingPay,
         serviceType: selectedDestObj.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih'
       });
@@ -180,6 +188,7 @@ export default function AdminTransactionEditPage() {
 
   const discountVal = discountInput === '' ? 0 : Number(discountInput);
   const finalTotalNet = Math.max(0, basePrice - discountVal);
+  const daysNumDisplay = durationDays === '' ? 1 : Number(durationDays);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
@@ -270,7 +279,7 @@ export default function AdminTransactionEditPage() {
                 <Calculator size={20} />
               </div>
               <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-wider opacity-70">Total Tarif Normal ({durationDays} Hari)</p>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider opacity-70">Total Tarif Normal ({daysNumDisplay} Hari)</p>
                 <p className="text-xs font-medium opacity-80">{selectedCar?.name || 'Belum pilih armada'}</p>
               </div>
             </div>
@@ -297,12 +306,14 @@ export default function AdminTransactionEditPage() {
                 <Calendar size={14} className="text-indigo-500" /> Durasi (Hari)
               </label>
               <input 
-                type="number" 
-                min={1}
+                type="text" 
+                inputMode="numeric"
+                pattern="[0-9]*"
                 required
                 value={durationDays}
-                onChange={(e) => setDurationDays(Math.max(1, parseInt(e.target.value) || 1))}
-                className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+                onChange={(e) => setDurationDays(e.target.value.replace(/\D/g, ''))}
+                placeholder="1"
+                className={`w-full p-3.5 rounded-2xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
               />
             </div>
             <div>
@@ -319,7 +330,7 @@ export default function AdminTransactionEditPage() {
             </div>
           </div>
 
-          {travelDate && durationDays > 1 && (
+          {travelDate && daysNumDisplay > 1 && (
             <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs opacity-80">
               <span className="font-bold text-indigo-500">Rincian Tanggal Sewa:</span> {generateDateDetails()}
             </div>
@@ -332,11 +343,11 @@ export default function AdminTransactionEditPage() {
                 <Percent size={14} /> Diskon / Potongan (Rp)
               </label>
               <input 
-                type="number" 
-                min="0"
-                step="1000"
+                type="text" 
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
+                onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="0"
                 className={`w-full p-3.5 rounded-2xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
               />
@@ -348,12 +359,15 @@ export default function AdminTransactionEditPage() {
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75">Jumlah DP</label>
               <input 
-                type="number" 
+                type="text" 
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={dpAmount}
                 onChange={(e) => handleDpChange(e.target.value)}
+                placeholder="0"
                 className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
               />
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold mt-1">Format: {formatRupiah(Number(dpAmount) || 0)}</p>
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold mt-1">Format: {formatRupiah(dpAmount === '' ? 0 : Number(dpAmount))}</p>
             </div>
 
             <div>
