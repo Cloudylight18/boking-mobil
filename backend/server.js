@@ -17,13 +17,13 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// 2. Setup Socket.io (Sudah diperbaiki dengan spesifik origin)
+// 2. Setup Socket.io (Sudah diperbarui dengan domain baru)
 const io = new Server(server, {
   cors: {
     origin: [
-      'https://papayawhip-stingray-948405.hostingersite.com', // URL Frontend Online Hostinger
-      'http://localhost:3000', // URL lokal Next.js/React
-      'http://localhost:5173'  // URL lokal Vite
+      'https://hitsbahtrsport.com', // URL Frontend Online Hostinger
+      'http://localhost:3000',      // URL lokal Next.js/React
+      'http://localhost:5173'       // URL lokal Vite
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
@@ -36,11 +36,11 @@ app.use(helmet({
 }));
 
 // ==========================================
-// PERBAIKAN UTAMA: Pengaturan CORS Spesifik
+// PENGATURAN CORS SPESIFIK DOMAIN BARU
 // ==========================================
 app.use(cors({
   origin: [
-    'https://papayawhip-stingray-948405.hostingersite.com', // URL Frontend kamu wajib masuk sini
+    'https://hitsbahtrsport.com', // URL Frontend baru Anda
     'http://localhost:3000',
     'http://localhost:5173'
   ],
@@ -115,10 +115,10 @@ server.listen(PORT, async () => {
     console.log('\x1b[35m\x1b[1m=========================================================\x1b[0m');
     console.log('\x1b[36m\x1b[1m  🚀 HITSBAH TRANSPORT BACKEND ENGINE v2.0 ACTIVE 🚀 \x1b[0m');
     console.log('\x1b[35m\x1b[1m=========================================================\x1b[0m');
-    console.log(`\x1b[32m\x1b[1m  [SERVER]    \x1b[0m Running smoothly at \x1b[36m\x1b[4mhttp://localhost:${PORT}\x1b[0m`);
-    console.log(`\x1b[32m\x1b[1m  [DATABASE]  \x1b[0m \x1b[92m🟢 PostgreSQL Database Connected & Secure (VPS)\x1b[0m`);
-    console.log(`\x1b[32m\x1b[1m  [SOCKET.IO] \x1b[0m \x1b[95m🟢 Realtime Gateway Initialized\x1b[0m`);
-    console.log(`\x1b[32m\x1b[1m  [KNOWLEDGE] \x1b[0m \x1b[93m🟢 Vito AI Knowledge Base Synced\x1b[0m`);
+    console.log(`\x1b[32m\x1b[1m  [SERVER]     \x1b[0m Running smoothly at \x1b[36m\x1b[4mhttp://localhost:${PORT}\x1b[0m`);
+    console.log(`\x1b[32m\x1b[1m  [DATABASE]   \x1b[0m \x1b[92m🟢 PostgreSQL Database Connected & Secure (VPS)\x1b[0m`);
+    console.log(`\x1b[32m\x1b[1m  [SOCKET.IO]  \x1b[0m \x1b[95m🟢 Realtime Gateway Initialized\x1b[0m`);
+    console.log(`\x1b[32m\x1b[1m  [KNOWLEDGE]  \x1b[0m \x1b[93m🟢 Vito AI Knowledge Base Synced\x1b[0m`);
     console.log('\x1b[35m\x1b[1m=========================================================\x1b[0m');
   } catch (dbError) {
     console.log('\x1b[31m\x1b[1m=========================================================\x1b[0m');
