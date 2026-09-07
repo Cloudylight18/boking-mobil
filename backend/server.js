@@ -40,7 +40,7 @@ app.use(helmet({
 // ==========================================
 app.use(cors({
   origin: [
-    'https://hitsbahtrsport.com', // URL Frontend baru Anda
+    'https://hitsbahtransport.com', // URL Frontend baru Anda
     'http://localhost:3000',
     'http://localhost:5173'
   ],
