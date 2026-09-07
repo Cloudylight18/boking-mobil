@@ -34,8 +34,8 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
   useEffect(() => {
     const fetchCars = async () => {
       try {
-        // PERBAIKAN UTAMA: Menggunakan URL backend dinamis untuk produksi dan lokal
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        // PERBAIKAN PERMANEN: URL langsung diarahkan ke Hostinger agar tidak nyangkut di localhost
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
         
         const response = await axios.get(`${backendUrl}/api/cars`);
         setCars(response.data.data || []);
@@ -85,7 +85,8 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {filteredCars.map((car) => {
             const activeImg = car.images?.[0]?.imageUrl;
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+            // PERBAIKAN PERMANEN UNTUK FOTO MOBIL: Pastikan foto juga ditarik dari Hostinger
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
             const mainImg = activeImg 
               ? (activeImg.startsWith('http') ? activeImg : `${backendUrl}${activeImg}`)
               : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80';
@@ -101,7 +102,6 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
                 }`}
               >
                 <div>
-                  {/* Image Container with Cinematic Zoom */}
                   <div className="relative h-56 sm:h-64 overflow-hidden bg-slate-950">
                     <img 
                       src={mainImg} 
@@ -110,7 +110,6 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-80" />
                     
-                    {/* Status Badge */}
                     <span className={`absolute top-4 right-4 backdrop-blur-xl px-3.5 py-1 rounded-full text-xs font-bold shadow-lg border transition-transform duration-300 group-hover:scale-105 ${
                       car.status === 'AVAILABLE' 
                         ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
@@ -127,7 +126,6 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
                       {car.name}
                     </h3>
                     
-                    {/* Rincian Tarif Tujuan */}
                     <div className={`space-y-2.5 border-t pt-4 sm:pt-5 ${isDarkMode ? 'border-slate-800/80' : 'border-slate-100'}`}>
                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5 mb-3">
                         <Navigation size={13} /> Tarif Rute & Layanan:
@@ -160,7 +158,6 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
                   </div>
                 </div>
 
-                {/* Call to Action Button */}
                 <div className="p-5 sm:p-6 pt-3">
                   <div className="w-full bg-slate-100 dark:bg-slate-800/80 group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-teal-600 text-slate-800 dark:text-white group-hover:text-white font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 text-sm shadow-md group-hover:shadow-lg group-hover:shadow-emerald-600/30">
                     <span>Lihat Detail & Rute</span> 
