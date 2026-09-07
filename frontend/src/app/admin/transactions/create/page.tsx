@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
@@ -30,8 +30,18 @@ export default function AdminTransactionCreatePage() {
 
   const [customerName, setCustomerName] = useState('');
   const [address, setAddress] = useState('');
+  
+  // State untuk Armada Mobil
   const [selectedCarId, setSelectedCarId] = useState('');
+  const [isCustomCar, setIsCustomCar] = useState(false);
+  const [customCarName, setCustomCarName] = useState('');
+
+  // State untuk Rute/Tujuan
   const [selectedDestPriceId, setSelectedDestPriceId] = useState('');
+  const [isCustomDest, setIsCustomDest] = useState(false);
+  const [customDestName, setCustomDestName] = useState('');
+  const [customPricePerDay, setCustomPricePerDay] = useState<string>('');
+  const [customServiceType, setCustomServiceType] = useState('WITH_DRIVER');
   
   const [travelDate, setTravelDate] = useState('');
   const [durationDays, setDurationDays] = useState<string>('1'); 
@@ -54,38 +64,70 @@ export default function AdminTransactionCreatePage() {
 
   const selectedCar = cars.find(c => c.id === selectedCarId);
 
+  // Handle Perubahan Pilihan Armada
+  const handleCarChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === 'LAINNYA') {
+      setIsCustomCar(true);
+      setSelectedCarId('');
+      // Jika mobil manual, rute juga otomatis manual
+      setIsCustomDest(true);
+      setSelectedDestPriceId('LAINNYA');
+    } else {
+      setIsCustomCar(false);
+      setSelectedCarId(val);
+      setSelectedDestPriceId('');
+      setIsCustomDest(false);
+    }
+  };
+
+  // Handle Perubahan Pilihan Rute
+  const handleDestChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === 'LAINNYA') {
+      setIsCustomDest(true);
+      setSelectedDestPriceId('LAINNYA');
+    } else {
+      setIsCustomDest(false);
+      setSelectedDestPriceId(val);
+    }
+  };
+
   // Kalkulasi total harga otomatis secara real-time
   useEffect(() => {
-    if (!selectedDestPriceId || !selectedCar) {
-      setBasePrice(0);
-      setRemainingPay(0);
-      return;
+    let unitPrice = 0;
+
+    if (isCustomDest) {
+      unitPrice = customPricePerDay === '' ? 0 : Number(customPricePerDay);
+    } else if (selectedDestPriceId && selectedCar) {
+      const foundPriceObj = selectedCar.destinationPrices.find(dp => dp.id === selectedDestPriceId);
+      unitPrice = foundPriceObj ? Number(foundPriceObj.price || 0) : 0;
     }
 
-    const foundPriceObj = selectedCar.destinationPrices.find(dp => dp.id === selectedDestPriceId);
-    if (foundPriceObj) {
-      const unitPrice = Number(foundPriceObj.price || 0);
-      const daysNum = durationDays === '' ? 1 : Number(durationDays);
-      const totalCalculatedPrice = unitPrice * daysNum;
-      
-      setBasePrice(totalCalculatedPrice);
+    const daysNum = durationDays === '' ? 1 : Number(durationDays);
+    const totalCalculatedPrice = unitPrice * daysNum;
+    
+    setBasePrice(totalCalculatedPrice);
 
-      const discountVal = discountInput === '' ? 0 : Number(discountInput);
-      const finalPriceAfterDiscount = Math.max(0, totalCalculatedPrice - discountVal);
-      const dp = dpAmount === '' ? 0 : Number(dpAmount);
+    const discountVal = discountInput === '' ? 0 : Number(discountInput);
+    const finalPriceAfterDiscount = Math.max(0, totalCalculatedPrice - discountVal);
+    const dp = dpAmount === '' ? 0 : Number(dpAmount);
 
-      setRemainingPay(Math.max(0, finalPriceAfterDiscount - dp));
-    } else {
-      setBasePrice(0);
-      setRemainingPay(0);
-    }
-  }, [selectedDestPriceId, selectedCar, dpAmount, durationDays, discountInput]);
+    setRemainingPay(Math.max(0, finalPriceAfterDiscount - dp));
+  }, [selectedDestPriceId, selectedCar, dpAmount, durationDays, discountInput, isCustomDest, customPricePerDay]);
 
   const handleDpChange = (val: string) => {
     const cleanVal = val.replace(/\D/g, '');
     setDpAmount(cleanVal);
+    
+    let unitPrice = 0;
+    if (isCustomDest) {
+      unitPrice = customPricePerDay === '' ? 0 : Number(customPricePerDay);
+    } else {
+      unitPrice = selectedCar?.destinationPrices.find(dp => dp.id === selectedDestPriceId)?.price || 0;
+    }
+
     const daysNum = durationDays === '' ? 1 : Number(durationDays);
-    const unitPrice = selectedCar?.destinationPrices.find(dp => dp.id === selectedDestPriceId)?.price || 0;
     const currentBase = unitPrice * daysNum;
     const discountVal = discountInput === '' ? 0 : Number(discountInput);
     const finalPriceAfterDiscount = Math.max(0, currentBase - discountVal);
@@ -108,13 +150,42 @@ export default function AdminTransactionCreatePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCar || !selectedDestPriceId) {
-      toast.error('Pilih armada mobil dan rute tujuan terlebih dahulu.');
-      return;
+
+    // Validasi Mobil
+    let finalCarName = '';
+    if (isCustomCar) {
+      if (!customCarName.trim()) {
+        toast.error('Nama mobil manual (Lainnya) harus diisi.');
+        return;
+      }
+      finalCarName = customCarName;
+    } else {
+      if (!selectedCar) {
+        toast.error('Pilih armada mobil terlebih dahulu.');
+        return;
+      }
+      finalCarName = selectedCar.name;
     }
 
-    const selectedDestObj = selectedCar.destinationPrices.find(dp => dp.id === selectedDestPriceId);
-    if (!selectedDestObj) return;
+    // Validasi Rute & Harga
+    let finalDestName = '';
+    let finalServiceType = '';
+    if (isCustomDest) {
+      if (!customDestName.trim() || !customPricePerDay) {
+        toast.error('Nama rute manual dan harga per hari harus diisi.');
+        return;
+      }
+      finalDestName = customDestName;
+      finalServiceType = customServiceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih';
+    } else {
+      const selectedDestObj = selectedCar?.destinationPrices.find(dp => dp.id === selectedDestPriceId);
+      if (!selectedDestObj) {
+        toast.error('Pilih rute tujuan terlebih dahulu.');
+        return;
+      }
+      finalDestName = selectedDestObj.destination;
+      finalServiceType = selectedDestObj.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih';
+    }
 
     const daysNum = durationDays === '' ? 1 : Number(durationDays);
 
@@ -123,8 +194,8 @@ export default function AdminTransactionCreatePage() {
       await API.post('/api/transactions', {
         customerName,
         address,
-        carName: selectedCar.name,
-        destination: selectedDestObj.destination,
+        carName: finalCarName,
+        destination: finalDestName,
         travelDate,
         durationDays: daysNum,
         dateDetails: generateDateDetails(),
@@ -132,7 +203,7 @@ export default function AdminTransactionCreatePage() {
         discountAmount: discountInput === '' ? 0 : Number(discountInput),
         dpAmount: dpAmount === '' ? 0 : Number(dpAmount),
         remainingPay: remainingPay,
-        serviceType: selectedDestObj.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih'
+        serviceType: finalServiceType
       });
 
       toast.success('Nota transaksi POS berhasil dibuat!');
@@ -164,6 +235,8 @@ export default function AdminTransactionCreatePage() {
         </div>
 
         <form onSubmit={handleSubmit} className={`p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+          
+          {/* Identitas Customer */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -193,47 +266,114 @@ export default function AdminTransactionCreatePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
-                <Navigation size={14} className="text-indigo-500" /> Pilih Armada Mobil
-              </label>
-              <select 
-                required
-                value={selectedCarId}
-                onChange={(e) => {
-                  setSelectedCarId(e.target.value);
-                  setSelectedDestPriceId('');
-                }}
-                className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
-              >
-                <option value="">-- Pilih Armada Mobil --</option>
-                {cars.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} — [{c.status}]
-                  </option>
-                ))}
-              </select>
+          {/* Pemilihan Armada & Rute */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+            {/* Armada Mobil */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+                  <Navigation size={14} className="text-indigo-500" /> Pilih Armada Mobil
+                </label>
+                <select 
+                  required
+                  value={isCustomCar ? 'LAINNYA' : selectedCarId}
+                  onChange={handleCarChange}
+                  className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+                >
+                  <option value="">-- Pilih Armada Mobil --</option>
+                  {cars.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — [{c.status}]
+                    </option>
+                  ))}
+                  <option value="LAINNYA" className="font-bold text-indigo-600 dark:text-indigo-400">✨ Lainnya (Input Manual)</option>
+                </select>
+              </div>
+              
+              {isCustomCar && (
+                <div className="animate-fadeIn p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20">
+                  <label className="block text-[11px] font-extrabold uppercase mb-2 opacity-75 text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                    <Edit3 size={12} /> Masukkan Nama Mobil Manual
+                  </label>
+                  <input 
+                    type="text" 
+                    required={isCustomCar}
+                    value={customCarName}
+                    onChange={(e) => setCustomCarName(e.target.value)}
+                    placeholder="Contoh: Avanza Hitam (Unit Eksternal)" 
+                    className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                  />
+                </div>
+              )}
             </div>
 
-            <div>
-              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
-                <MapPin size={14} className="text-indigo-500" /> Pilih Rute / Tujuan & Layanan
-              </label>
-              <select 
-                required
-                disabled={!selectedCarId}
-                value={selectedDestPriceId}
-                onChange={(e) => setSelectedDestPriceId(e.target.value)}
-                className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
-              >
-                <option value="">-- Pilih Rute Tujuan --</option>
-                {selectedCar?.destinationPrices?.map((dp) => (
-                  <option key={dp.id} value={dp.id}>
-                    {dp.destination} ({dp.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in'}) — {formatRupiah(dp.price)}/hari
-                  </option>
-                ))}
-              </select>
+            {/* Rute Tujuan */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+                  <MapPin size={14} className="text-indigo-500" /> Pilih Rute / Tujuan & Layanan
+                </label>
+                <select 
+                  required
+                  disabled={!selectedCarId && !isCustomCar}
+                  value={isCustomDest ? 'LAINNYA' : selectedDestPriceId}
+                  onChange={handleDestChange}
+                  className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+                >
+                  <option value="">-- Pilih Rute Tujuan --</option>
+                  {!isCustomCar && selectedCar?.destinationPrices?.map((dp) => (
+                    <option key={dp.id} value={dp.id}>
+                      {dp.destination} ({dp.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in'}) — {formatRupiah(dp.price)}/hari
+                    </option>
+                  ))}
+                  <option value="LAINNYA" className="font-bold text-indigo-600 dark:text-indigo-400">✨ Lainnya (Input Manual)</option>
+                </select>
+              </div>
+
+              {isCustomDest && (
+                <div className="animate-fadeIn p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-extrabold uppercase mb-2 opacity-75 text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                      <Edit3 size={12} /> Nama Rute / Tujuan Manual
+                    </label>
+                    <input 
+                      type="text" 
+                      required={isCustomDest}
+                      value={customDestName}
+                      onChange={(e) => setCustomDestName(e.target.value)}
+                      placeholder="Contoh: Drop Off Bandara Soekarno Hatta" 
+                      className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase mb-1.5 opacity-75">Tipe Layanan</label>
+                      <select 
+                        value={customServiceType}
+                        onChange={(e) => setCustomServiceType(e.target.value)}
+                        className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                      >
+                        <option value="WITH_DRIVER">Mobil + Supir</option>
+                        <option value="CARTER_ALL_IN">Carter All-in</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase mb-1.5 opacity-75 flex items-center gap-1"><DollarSign size={10}/> Tarif per Hari</label>
+                      <input 
+                        type="text" 
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        required={isCustomDest}
+                        value={customPricePerDay}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setCustomPricePerDay(e.target.value.replace(/\D/g, ''))}
+                        placeholder="Contoh: 500000" 
+                        className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -245,7 +385,9 @@ export default function AdminTransactionCreatePage() {
               </div>
               <div>
                 <p className="text-[10px] font-extrabold uppercase tracking-wider opacity-70">Total Tarif (Dikalikan {daysNumDisplay} Hari)</p>
-                <p className="text-xs font-medium opacity-80">{selectedCar?.name || 'Belum pilih armada'}</p>
+                <p className="text-xs font-medium opacity-80">
+                  {isCustomCar ? (customCarName || 'Mobil Manual') : (selectedCar?.name || 'Belum pilih armada')}
+                </p>
               </div>
             </div>
             <span className="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
@@ -253,6 +395,7 @@ export default function AdminTransactionCreatePage() {
             </span>
           </div>
 
+          {/* Jadwal Perjalanan */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
