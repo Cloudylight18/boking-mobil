@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigation, Search, DollarSign, Activity } from 'lucide-react';
+import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigation, Search, DollarSign, Activity, Percent } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { formatRupiah } from '@/app/utils/formatRupiah';
@@ -19,6 +19,7 @@ interface TransactionItem {
   shiftTime: string;
   dpAmount: number;
   remainingPay: number;
+  discountAmount?: number; // Ditambahkan untuk integrasi fitur diskon Rupiah
   serviceType: string;
   createdAt: string;
 }
@@ -34,7 +35,6 @@ export default function AdminTransactionsPage() {
 
   const fetchTransactions = async () => {
     try {
-      // Menggunakan instance API global
       const res = await API.get('/api/transactions');
       setTransactions(res.data.data || []);
     } catch (error) {
@@ -47,7 +47,6 @@ export default function AdminTransactionsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Yakin ingin menghapus nota transaksi ini?')) return;
     try {
-      // Menggunakan instance API global untuk hapus data
       await API.delete(`/api/transactions/${id}`);
       toast.success('Transaksi berhasil dihapus.');
       fetchTransactions();
@@ -78,14 +77,14 @@ export default function AdminTransactionsPage() {
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 text-indigo-500 text-xs font-black uppercase tracking-wider mb-2 border border-indigo-500/20 shadow-sm">
             <FileText size={14} /> POS Kasir & Perjalanan
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Nota Transaksi Travel & Rental</h1>
-          <p className="text-sm opacity-70 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Nota Transaksi Travel & Rental</h1>
+          <p className="text-xs sm:text-sm opacity-70 mt-1">
             Kelola nota perjalanan, carter armada, jadwal sewa, dan status pelunasan pembayaran pelanggan secara real-time.
           </p>
         </div>
         <Link 
           href="/admin/transactions/create"
-          className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/25 hover:-translate-y-0.5 cursor-pointer shrink-0 transition-all"
+          className="w-full sm:w-auto justify-center px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/25 hover:-translate-y-0.5 cursor-pointer shrink-0 transition-all"
         >
           <Plus size={18} /> Buat Nota POS Baru
         </Link>
@@ -94,30 +93,30 @@ export default function AdminTransactionsPage() {
       {/* Quick Financial Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold shrink-0">
             <DollarSign size={22} />
           </div>
           <div>
             <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Total Pendapatan</p>
-            <h4 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatRupiah(totalRevenue)}</h4>
+            <h4 className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatRupiah(totalRevenue)}</h4>
           </div>
         </div>
         <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold shrink-0">
             <Activity size={22} />
           </div>
           <div>
             <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Total DP Masuk</p>
-            <h4 className="text-2xl font-black">{formatRupiah(totalDp)}</h4>
+            <h4 className="text-xl sm:text-2xl font-black">{formatRupiah(totalDp)}</h4>
           </div>
         </div>
         <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold shrink-0">
             <FileText size={22} />
           </div>
           <div>
             <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Sisa Piutang / Pelunasan</p>
-            <h4 className="text-2xl font-black text-rose-600 dark:text-rose-400">{formatRupiah(totalRemaining)}</h4>
+            <h4 className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400">{formatRupiah(totalRemaining)}</h4>
           </div>
         </div>
       </div>
@@ -203,6 +202,12 @@ export default function AdminTransactionsPage() {
 
                   {/* Financial Summary inside Card */}
                   <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-950/40 p-3.5 rounded-2xl space-y-2">
+                    {tx.discountAmount && tx.discountAmount > 0 && (
+                      <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
+                        <span className="font-medium flex items-center gap-1"><Percent size={12} /> Diskon:</span>
+                        <span className="font-bold">(-) {formatRupiah(tx.discountAmount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="opacity-75 font-medium">DP (Uang Muka):</span>
                       <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatRupiah(tx.dpAmount)}</span>
@@ -217,7 +222,7 @@ export default function AdminTransactionsPage() {
 
               {/* Actions Footer */}
               <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <Link 
                     href={`/admin/transactions/${tx.id}`}
                     className="px-3.5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
