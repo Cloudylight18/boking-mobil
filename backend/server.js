@@ -17,11 +17,16 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// 2. Setup Socket.io
+// 2. Setup Socket.io (Sudah diperbaiki dengan spesifik origin)
 const io = new Server(server, {
   cors: {
-    origin: '*', 
-    methods: ['GET', 'POST']
+    origin: [
+      'https://papayawhip-stingray-948405.hostingersite.com', // URL Frontend Online Hostinger
+      'http://localhost:3000', // URL lokal Next.js/React
+      'http://localhost:5173'  // URL lokal Vite
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
   }
 });
 
@@ -29,7 +34,21 @@ const io = new Server(server, {
 app.use(helmet({
   crossOriginResourcePolicy: false, // Memungkinkan akses resource lintas folder (gambar/video uploads)
 }));
-app.use(cors());
+
+// ==========================================
+// PERBAIKAN UTAMA: Pengaturan CORS Spesifik
+// ==========================================
+app.use(cors({
+  origin: [
+    'https://papayawhip-stingray-948405.hostingersite.com', // URL Frontend kamu wajib masuk sini
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Wajib true agar frontend diizinkan mengambil data dengan aman
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
