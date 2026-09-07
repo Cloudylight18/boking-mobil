@@ -21,7 +21,7 @@ const prisma = new PrismaClient({ adapter });
 const io = new Server(server, {
   cors: {
     origin: [
-      'https://hitsbahtrsport.com', // URL Frontend Online Hostinger
+      'https://hitsbahtransport.com', // URL Frontend Online Hostinger
       'http://localhost:3000',      // URL lokal Next.js/React
       'http://localhost:5173'       // URL lokal Vite
     ],
