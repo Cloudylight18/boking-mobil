@@ -1,6 +1,6 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { 
   Plus, 
@@ -18,11 +18,11 @@ import {
   MapPin,
   User,
   Clock,
-  Sparkles,
   TrendingUp
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface DashboardStats {
   totalCars: number;
@@ -68,9 +68,10 @@ export default function DashboardAdmin() {
 
   const fetchData = async () => {
     try {
+      // Menggunakan instance API global menggantikan axios mentah ber-localhost
       const [statsRes, txRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/dashboard/stats'),
-        axios.get('http://localhost:5000/api/transactions')
+        API.get('/api/dashboard/stats'),
+        API.get('/api/transactions')
       ]);
       setStats(statsRes.data.data);
       setTransactions(txRes.data.data || []);

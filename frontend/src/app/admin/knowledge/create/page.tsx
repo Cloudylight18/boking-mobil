@@ -1,11 +1,11 @@
 'use client';
 import React, { useState } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 export default function AdminKnowledgeCreatePage() {
   const router = useRouter();
@@ -19,7 +19,8 @@ export default function AdminKnowledgeCreatePage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/knowledge', { title, category, content });
+      // Menggunakan instance API global
+      await API.post('/api/knowledge', { title, category, content });
       toast.success('Knowledge berhasil ditambahkan ke AI!');
       setTimeout(() => router.push('/admin/knowledge'), 1000);
     } catch (error) {

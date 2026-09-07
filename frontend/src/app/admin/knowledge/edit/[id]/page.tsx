@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 export default function AdminKnowledgeEditPage() {
   const params = useParams();
@@ -21,7 +21,8 @@ export default function AdminKnowledgeEditPage() {
 
   useEffect(() => {
     if (!id) return;
-    axios.get('http://localhost:5000/api/knowledge')
+    // Menggunakan instance API global untuk mengambil data knowledge
+    API.get('/api/knowledge')
       .then(res => {
         const found = (res.data.data || []).find((item: any) => item.id === id);
         if (found) {
@@ -40,7 +41,8 @@ export default function AdminKnowledgeEditPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await axios.put(`http://localhost:5000/api/knowledge/${id}`, { title, category, content });
+      // Menggunakan instance API global untuk memperbarui data
+      await API.put(`/api/knowledge/${id}`, { title, category, content });
       toast.success('Knowledge berhasil diperbarui!');
       setTimeout(() => router.push('/admin/knowledge'), 1000);
     } catch (error) {

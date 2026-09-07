@@ -1,12 +1,12 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Printer, Download, Share2 } from 'lucide-react';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import toast, { Toaster } from 'react-hot-toast';
 import * as htmlToImage from 'html-to-image';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface TransactionItem {
   id: string;
@@ -36,7 +36,8 @@ export default function AdminTransactionDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    axios.get('http://localhost:5000/api/transactions')
+    // Menggunakan instance API global
+    API.get('/api/transactions')
       .then(res => {
         const found = (res.data.data || []).find((item: TransactionItem) => item.id === id);
         if (found) {

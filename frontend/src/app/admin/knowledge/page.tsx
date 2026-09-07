@@ -1,10 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { Plus, Trash2, Edit3, BookOpen, Search } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface KnowledgeItem {
   id: string;
@@ -25,7 +25,8 @@ export default function AdminKnowledgePage() {
 
   const fetchKnowledge = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/knowledge');
+      // Menggunakan instance API global
+      const res = await API.get('/api/knowledge');
       setItems(res.data.data || []);
     } catch (error) {
       toast.error('Gagal memuat database knowledge.');
@@ -37,7 +38,8 @@ export default function AdminKnowledgePage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus informasi knowledge ini?')) return;
     try {
-      await axios.delete(`http://localhost:5000/api/knowledge/${id}`);
+      // Menggunakan instance API global untuk hapus data
+      await API.delete(`/api/knowledge/${id}`);
       toast.success('Knowledge berhasil dihapus.');
       fetchKnowledge();
     } catch (error) {

@@ -1,12 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface DestinationPrice {
   id: string;
@@ -51,9 +51,10 @@ export default function AdminTransactionEditPage() {
     if (!id) return;
     const fetchData = async () => {
       try {
+        // Menggunakan instance API global untuk mengambil data cars dan transactions secara paralel
         const [carsRes, txRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/cars'),
-          axios.get('http://localhost:5000/api/transactions')
+          API.get('/api/cars'),
+          API.get('/api/transactions')
         ]);
         const carList = carsRes.data.data || [];
         setCars(carList);
@@ -143,7 +144,8 @@ export default function AdminTransactionEditPage() {
 
     setIsSaving(true);
     try {
-      await axios.put(`http://localhost:5000/api/transactions/${id}`, {
+      // Menggunakan instance API global untuk memperbarui transaksi
+      await API.put(`/api/transactions/${id}`, {
         customerName,
         address,
         carName: selectedCar.name,

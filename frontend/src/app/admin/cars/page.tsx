@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { Plus, Trash2, Edit3, Eye, Navigation, Car as CarIcon, Search, CheckCircle2, Wrench, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface DestinationPrice {
   id: string;
@@ -30,13 +30,16 @@ export default function AdminCarsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Mendapatkan Base URL dari instance API untuk penanganan file gambar
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+
   useEffect(() => {
     fetchCars();
   }, []);
 
   const fetchCars = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/cars');
+      const res = await API.get('/api/cars');
       setCars(res.data.data || []);
     } catch (error) {
       toast.error('Gagal memuat data armada.');
@@ -48,7 +51,7 @@ export default function AdminCarsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Yakin ingin menghapus armada ini beserta seluruh data tarifnya?')) return;
     try {
-      await axios.delete(`http://localhost:5000/api/cars/${id}`);
+      await API.delete(`/api/cars/${id}`);
       toast.success('Armada berhasil dihapus.');
       fetchCars();
     } catch (error) {
@@ -152,7 +155,7 @@ export default function AdminCarsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredCars.map((car) => {
             const mainImage = car.images?.[0]?.imageUrl 
-              ? (car.images[0].imageUrl.startsWith('http') ? car.images[0].imageUrl : `http://localhost:5000${car.images[0].imageUrl}`)
+              ? (car.images[0].imageUrl.startsWith('http') ? car.images[0].imageUrl : `${backendUrl}${car.images[0].imageUrl}`)
               : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80';
 
             return (

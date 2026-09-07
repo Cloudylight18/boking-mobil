@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigation, Search, DollarSign, Activity, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigation, Search, DollarSign, Activity } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface TransactionItem {
   id: string;
@@ -34,7 +34,8 @@ export default function AdminTransactionsPage() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/transactions');
+      // Menggunakan instance API global
+      const res = await API.get('/api/transactions');
       setTransactions(res.data.data || []);
     } catch (error) {
       toast.error('Gagal memuat data transaksi POS.');
@@ -46,7 +47,8 @@ export default function AdminTransactionsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Yakin ingin menghapus nota transaksi ini?')) return;
     try {
-      await axios.delete(`http://localhost:5000/api/transactions/${id}`);
+      // Menggunakan instance API global untuk hapus data
+      await API.delete(`/api/transactions/${id}`);
       toast.success('Transaksi berhasil dihapus.');
       fetchTransactions();
     } catch (error) {

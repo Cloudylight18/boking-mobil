@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sun, Moon, Settings, LogOut, ChevronDown } from 'lucide-react';
-import axios from 'axios';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface NavbarProps {
   isDarkMode: boolean;
@@ -19,20 +19,23 @@ export default function AdminNavbar({ isDarkMode, toggleDarkMode }: NavbarProps)
   const [adminName, setAdminName] = useState('Super Admin');
   const [adminImage, setAdminImage] = useState<string | null>(null);
 
+  // Mendapatkan Base URL dari instance API atau environment variable untuk penanganan gambar profil
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+
   const isActive = (path: string) => pathname === path;
 
-  // Ambil data profil admin secara real-time untuk navbar
+  // Ambil data profil admin secara real-time untuk navbar menggunakan instance API
   useEffect(() => {
     const fetchAdminProfile = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/auth/profile');
+        const res = await API.get('/api/auth/profile');
         if (res.data.status === 'success' && res.data.data) {
           const data = res.data.data;
           if (data.username) setAdminName(data.username);
           if (data.image) {
             const imgUrl = data.image.startsWith('http') 
               ? data.image 
-              : `http://localhost:5000${data.image}`;
+              : `${backendUrl}${data.image}`;
             setAdminImage(imgUrl);
           }
         }
@@ -41,7 +44,7 @@ export default function AdminNavbar({ isDarkMode, toggleDarkMode }: NavbarProps)
       }
     };
     fetchAdminProfile();
-  }, []);
+  }, [backendUrl]);
 
   // Tutup dropdown jika mengklik di luar area
   useEffect(() => {

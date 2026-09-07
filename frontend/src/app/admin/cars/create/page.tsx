@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArrowLeft, Save, Upload, X, Plus, Video } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; 
 
 export default function AdminCarCreatePage() {
   const router = useRouter();
@@ -111,7 +111,8 @@ export default function AdminCarCreatePage() {
         formData.append('videos', video);
       });
 
-      await axios.post('http://localhost:5000/api/cars', formData, {
+      // Menggunakan API instance global menggantikan axios mentah ber-localhost
+      await API.post('/api/cars', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 

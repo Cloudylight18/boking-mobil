@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArrowLeft, Save, Upload, X, Plus, Video } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 export default function AdminCarEditPage() {
   const params = useParams();
@@ -41,7 +41,8 @@ export default function AdminCarEditPage() {
     if (!id) return;
     const fetchCar = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/cars');
+        // Menggunakan instance API global
+        const res = await API.get('/api/cars');
         const car = res.data.data.find((item: any) => item.id === id);
         if (car) {
           setName(car.name);
@@ -143,7 +144,8 @@ export default function AdminCarEditPage() {
         formData.append('videos', video);
       });
 
-      await axios.put(`http://localhost:5000/api/cars/${id}`, formData, {
+      // Menggunakan instance API global untuk proses update
+      await API.put(`/api/cars/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 

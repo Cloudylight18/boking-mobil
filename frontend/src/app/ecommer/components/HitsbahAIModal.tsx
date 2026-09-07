@@ -1,7 +1,8 @@
 'use client';
+
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { Bot, X, Send, Loader2 } from 'lucide-react';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface HitsbahAIProps {
   isOpen: boolean;
@@ -45,7 +46,8 @@ export default function HitsbahAIModal({ isOpen, onClose, isDarkMode }: HitsbahA
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/ai/chat', { message: userMsg });
+      // Menggunakan instance API global untuk chat dengan asisten AI
+      const res = await API.post('/api/ai/chat', { message: userMsg });
       const aiReply = res.data.reply || 'Maaf, layanan Hitsbah Transport sedang mengalami kendala koneksi.';
       setMessages(prev => [...prev, { sender: 'assistant', text: aiReply }]);
     } catch (error) {

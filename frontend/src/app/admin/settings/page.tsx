@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { Shield, Lock, User, Save, Camera, Upload } from 'lucide-react';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 export default function AdminSettingsPage() {
   const [adminId, setAdminId] = useState('');
@@ -19,13 +19,17 @@ export default function AdminSettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
+  // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan gambar profil
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [backendUrl]);
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/auth/profile');
+      // Menggunakan instance API global
+      const res = await API.get('/api/auth/profile');
       if (res.data.success && res.data.data) {
         const admin = res.data.data;
         setAdminId(admin.id);
@@ -33,7 +37,7 @@ export default function AdminSettingsPage() {
         if (admin.profileImage) {
           const imgUrl = admin.profileImage.startsWith('http') 
             ? admin.profileImage 
-            : `http://localhost:5000${admin.profileImage}`;
+            : `${backendUrl}${admin.profileImage}`;
           setImagePreview(imgUrl);
         }
       }
@@ -62,7 +66,8 @@ export default function AdminSettingsPage() {
     if (imageFile) formData.append('image', imageFile);
 
     try {
-      const res = await axios.put('http://localhost:5000/api/auth/update-profile', formData, {
+      // Menggunakan instance API global untuk memperbarui profil
+      const res = await API.put('/api/auth/update-profile', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       toast.success(res.data.message || 'Profil berhasil diperbarui!');
@@ -83,7 +88,8 @@ export default function AdminSettingsPage() {
 
     setIsLoading(true);
     try {
-      const res = await axios.put('http://localhost:5000/api/auth/update-password', {
+      // Menggunakan instance API global untuk mengubah kata sandi
+      const res = await API.put('/api/auth/update-password', {
         id: adminId,
         currentPassword,
         newPassword

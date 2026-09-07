@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import axios from 'axios';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, ShieldCheck, Tag, ImageIcon, Video, MapPin, Navigation } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldCheck, Tag, ImageIcon, Video, Navigation } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; 
 
 interface DestinationPrice {
   id: string;
@@ -51,11 +51,15 @@ export default function AdminCarDetailPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Mendapatkan Base URL dari instance API untuk penanganan file gambar/video
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+
   useEffect(() => {
     if (!id) return;
     const fetchCarDetail = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/cars');
+        // Menggunakan instance API global yang otomatis terhubung ke base URL
+        const response = await API.get('/api/cars');
         const foundCar = response.data.data.find((item: CarDetail) => item.id === id);
         if (foundCar) {
           setCar(foundCar);
@@ -87,7 +91,7 @@ export default function AdminCarDetailPage() {
 
   const activeImg = selectedImage || (car.images && car.images.length > 0 ? car.images[0].imageUrl : '');
   const mainImgUrl = activeImg 
-    ? (activeImg.startsWith('http') ? activeImg : `http://localhost:5000${activeImg}`)
+    ? (activeImg.startsWith('http') ? activeImg : `${backendUrl}${activeImg}`)
     : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80';
 
   return (
@@ -120,7 +124,7 @@ export default function AdminCarDetailPage() {
           {car.images && car.images.length > 1 && (
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
               {car.images.map((img) => {
-                const thumbUrl = img.imageUrl.startsWith('http') ? img.imageUrl : `http://localhost:5000${img.imageUrl}`;
+                const thumbUrl = img.imageUrl.startsWith('http') ? img.imageUrl : `${backendUrl}${img.imageUrl}`;
                 const isSelected = selectedImage === img.imageUrl;
                 return (
                   <button 
@@ -145,7 +149,7 @@ export default function AdminCarDetailPage() {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {car.videos.map((vid) => {
-                  const vidUrl = vid.videoUrl.startsWith('http') ? vid.videoUrl : `http://localhost:5000${vid.videoUrl}`;
+                  const vidUrl = vid.videoUrl.startsWith('http') ? vid.videoUrl : `${backendUrl}${vid.videoUrl}`;
                   return (
                     <div key={vid.id} className="h-48 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
                       <video src={vidUrl} controls className="w-full h-full object-cover" />

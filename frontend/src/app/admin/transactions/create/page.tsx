@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArrowLeft, Save, Calculator, Calendar, MapPin, Navigation, Clock, User, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; // Menggunakan instance API global
 
 interface DestinationPrice {
   id: string;
@@ -43,7 +43,8 @@ export default function AdminTransactionCreatePage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/cars')
+    // Menggunakan instance API global untuk mengambil daftar armada mobil
+    API.get('/api/cars')
       .then(res => {
         const responseData = res.data.data || res.data.cars || res.data || [];
         setCars(Array.isArray(responseData) ? responseData : []);
@@ -105,7 +106,8 @@ export default function AdminTransactionCreatePage() {
 
     setIsLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/transactions', {
+      // Menggunakan instance API global untuk menyimpan transaksi POS
+      await API.post('/api/transactions', {
         customerName,
         address,
         carName: selectedCar.name,
