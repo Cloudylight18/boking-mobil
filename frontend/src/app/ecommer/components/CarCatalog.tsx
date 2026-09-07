@@ -34,8 +34,8 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
   useEffect(() => {
     const fetchCars = async () => {
       try {
-        // PERBAIKAN PERMANEN: URL langsung diarahkan ke Hostinger agar tidak nyangkut di localhost
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+        // HARDCODE URL BACKEND PRODUKSI: Tidak bergantung pada .env / localhost lagi
+        const backendUrl = 'https://steelblue-fox-791845.hostingersite.com';
         
         const response = await axios.get(`${backendUrl}/api/cars`);
         setCars(response.data.data || []);
@@ -85,8 +85,7 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {filteredCars.map((car) => {
             const activeImg = car.images?.[0]?.imageUrl;
-            // PERBAIKAN PERMANEN UNTUK FOTO MOBIL: Pastikan foto juga ditarik dari Hostinger
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+            const backendUrl = 'https://steelblue-fox-791845.hostingersite.com';
             const mainImg = activeImg 
               ? (activeImg.startsWith('http') ? activeImg : `${backendUrl}${activeImg}`)
               : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80';
