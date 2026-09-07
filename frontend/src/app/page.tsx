@@ -19,29 +19,33 @@ export default function PublicCatalog() {
   const [isHitsbahAIOpen, setIsHitsbahAIOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
 
-  // Catat kunjungan e-commerce ke database secara otomatis saat halaman dibuka
+  // PERBAIKAN PERMANEN: URL Hostinger dijadikan nilai wajib agar tidak lari ke localhost saat online
   useEffect(() => {
-    axios.post('http://localhost:5000/api/dashboard/visit').catch(() => {});
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+    axios.post(`${backendUrl}/api/dashboard/visit`).catch(() => {});
   }, []);
 
   return (
-    <div className={`min-h-screen font-sans transition-colors duration-500 flex flex-col justify-between ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
+    // PERBAIKAN MOBILE: Tambahan overflow-x-hidden agar di HP layar tidak bisa tergeser/goyang ke samping
+    <div className={`min-h-screen font-sans transition-colors duration-500 flex flex-col justify-between overflow-x-hidden ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
       <Toaster position="top-right" />
 
-      {/* Navbar Storefront */}
-      <Navbar 
-        siteName="Hitsbah Transport" 
-        isDarkMode={isDarkMode} 
-        toggleDarkMode={() => setIsDarkMode(!isDarkMode)} 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onOpenVito={() => setIsHitsbahAIOpen(true)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
+      {/* PERBAIKAN MOBILE: Navbar dibungkus div khusus agar tidak berantakan/menumpuk di layar kecil */}
+      <div className="w-full sticky top-0 z-50 shadow-sm backdrop-blur-md bg-white/80 dark:bg-slate-950/80">
+        <Navbar 
+          siteName="Hitsbah Transport" 
+          isDarkMode={isDarkMode} 
+          toggleDarkMode={() => setIsDarkMode(!isDarkMode)} 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onOpenVito={() => setIsHitsbahAIOpen(true)}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+      </div>
 
-      {/* Main Content Area dengan Jarak & Ukuran yang Proporsional */}
-      <main className="flex-1 w-full overflow-hidden relative">
+      {/* Main Content Area dengan penyesuaian padding mobile (pt-2) */}
+      <main className="flex-1 w-full relative pt-2 sm:pt-4">
         <AnimatePresence mode="wait">
           
           {/* TAB HOME */}
@@ -52,6 +56,7 @@ export default function PublicCatalog() {
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -10, filter: 'blur(6px)' }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full"
             >
               <Hero isDarkMode={isDarkMode} setActiveTab={setActiveTab} />
             </motion.div>
@@ -65,7 +70,7 @@ export default function PublicCatalog() {
               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, scale: 1.02, filter: 'blur(6px)' }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="pt-4 md:pt-6 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
+              className="pt-2 md:pt-6 pb-16 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
             >
               <About isDarkMode={isDarkMode} />
             </motion.div>
@@ -79,7 +84,7 @@ export default function PublicCatalog() {
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -15, filter: 'blur(6px)' }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="pt-4 md:pt-6 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
+              className="pt-2 md:pt-6 pb-16 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
             >
               <CarCatalog searchQuery={searchQuery} isDarkMode={isDarkMode} />
             </motion.div>
@@ -93,7 +98,7 @@ export default function PublicCatalog() {
               animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, x: -20, filter: 'blur(6px)' }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="pt-4 md:pt-6 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
+              className="pt-2 md:pt-6 pb-16 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
             >
               <LocationContact 
                 address="Hitsbah transport, H66V+47M, Pangauban, Kec. Lelea, Kabupaten Indramayu, Jawa Barat 45261" 
@@ -111,10 +116,10 @@ export default function PublicCatalog() {
               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, scale: 1.02, filter: 'blur(6px)' }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="pt-4 md:pt-6 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
+              className="pt-2 md:pt-6 pb-16 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"
             >
-              <div className="mb-8 text-center max-w-2xl mx-auto">
-                <h1 className="text-2xl md:text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">Kontak Kami</h1>
+              <div className="mb-6 text-center max-w-2xl mx-auto px-2">
+                <h1 className="text-xl md:text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">Kontak Kami</h1>
                 <p className={`text-xs md:text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>Hubungi admin kami secara langsung melalui WhatsApp untuk konsultasi cepat dan pemesanan unit.</p>
               </div>
               <LocationContact 
