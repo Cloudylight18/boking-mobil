@@ -63,7 +63,7 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
             <Sparkles size={14} /> Armada Pilihan Terbaik
           </div>
           <h2 className={`text-2xl sm:text-3xl md:text-4xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-            Katalog Mobil & <span className="bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">Status Ketersediaan</span>
+            Katalog Mobil & <span className="bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">Tarif Layanan</span>
           </h2>
           <p className={`text-xs sm:text-sm md:text-base mt-2 max-w-2xl ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
             Pilih unit kendaraan impianmu, nikmati perjalanan aman bersama supir profesional atau ambil paket Carter All-in Bersih anti ribet.
