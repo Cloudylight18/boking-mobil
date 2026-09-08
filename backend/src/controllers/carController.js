@@ -69,7 +69,7 @@ exports.createCar = async (req, res) => {
           create: parsedDestinationPrices.map(item => ({
             destination: item.destination,
             serviceType: item.serviceType,
-            price: parseInt(item.price)
+            price: parseInt(item.price) || 0
           }))
         },
         terms: {
@@ -88,7 +88,7 @@ exports.createCar = async (req, res) => {
   }
 };
 
-// PUT: Update mobil berdasarkan ID (Menghapus foto/video lama yang dipilih & menambah yang baru)
+// PUT: Update mobil berdasarkan ID (Anti-Crash pada Penghapusan File)
 exports.updateCar = async (req, res) => {
   try {
     const { id } = req.params;
@@ -110,7 +110,7 @@ exports.updateCar = async (req, res) => {
       termsArray = Array.isArray(req.body.terms) ? req.body.terms : [req.body.terms];
     }
 
-    // 1. Handle Penghapusan Foto Lama yang dipilih dari Frontend
+    // 1. Tangkap array ID gambar yang dihapus secara aman
     let deletedImagesArray = [];
     if (req.body['deletedImages[]']) {
       deletedImagesArray = Array.isArray(req.body['deletedImages[]']) ? req.body['deletedImages[]'] : [req.body['deletedImages[]']];
@@ -118,21 +118,26 @@ exports.updateCar = async (req, res) => {
 
     if (deletedImagesArray.length > 0) {
       for (const imgId of deletedImagesArray) {
-        const imgRecord = await prisma.carImage.findUnique({ where: { id: imgId } });
-        if (imgRecord) {
-          // Hapus file fisik jika path berawalan /uploads/
-          if (imgRecord.imageUrl.startsWith('/uploads/')) {
-            const filePath = path.join(__dirname, '..', imgRecord.imageUrl);
-            if (fs.existsSync(filePath)) {
-              try { fs.unlinkSync(filePath); } catch (err) { console.error("Gagal hapus file gambar fisik:", err); }
+        try {
+          const imgRecord = await prisma.carImage.findUnique({ where: { id: imgId } });
+          if (imgRecord) {
+            if (imgRecord.imageUrl.startsWith('/uploads/')) {
+              // Gunakan .replace(/^\/+/, '') agar path aman dari bug leading slash path.join
+              const cleanPath = imgRecord.imageUrl.replace(/^\/+/, '');
+              const filePath = path.join(__dirname, '..', cleanPath);
+              if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+              }
             }
+            await prisma.carImage.delete({ where: { id: imgId } });
           }
-          await prisma.carImage.delete({ where: { id: imgId } });
+        } catch (err) {
+          console.error(`Gagal menghapus gambar ID ${imgId}:`, err.message);
         }
       }
     }
 
-    // 2. Handle Penghapusan Video Lama yang dipilih dari Frontend
+    // 2. Tangkap array ID video yang dihapus secara aman
     let deletedVideosArray = [];
     if (req.body['deletedVideos[]']) {
       deletedVideosArray = Array.isArray(req.body['deletedVideos[]']) ? req.body['deletedVideos[]'] : [req.body['deletedVideos[]']];
@@ -140,15 +145,20 @@ exports.updateCar = async (req, res) => {
 
     if (deletedVideosArray.length > 0) {
       for (const vidId of deletedVideosArray) {
-        const vidRecord = await prisma.carVideo.findUnique({ where: { id: vidId } });
-        if (vidRecord) {
-          if (vidRecord.videoUrl.startsWith('/uploads/')) {
-            const filePath = path.join(__dirname, '..', vidRecord.videoUrl);
-            if (fs.existsSync(filePath)) {
-              try { fs.unlinkSync(filePath); } catch (err) { console.error("Gagal hapus file video fisik:", err); }
+        try {
+          const vidRecord = await prisma.carVideo.findUnique({ where: { id: vidId } });
+          if (vidRecord) {
+            if (vidRecord.videoUrl.startsWith('/uploads/')) {
+              const cleanPath = vidRecord.videoUrl.replace(/^\/+/, '');
+              const filePath = path.join(__dirname, '..', cleanPath);
+              if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+              }
             }
+            await prisma.carVideo.delete({ where: { id: vidId } });
           }
-          await prisma.carVideo.delete({ where: { id: vidId } });
+        } catch (err) {
+          console.error(`Gagal menghapus video ID ${vidId}:`, err.message);
         }
       }
     }
@@ -165,7 +175,7 @@ exports.updateCar = async (req, res) => {
           create: parsedDestinationPrices.map(item => ({
             destination: item.destination,
             serviceType: item.serviceType,
-            price: parseInt(item.price)
+            price: parseInt(item.price) || 0
           }))
         },
         terms: {
@@ -176,14 +186,8 @@ exports.updateCar = async (req, res) => {
       include: { images: true, videos: true, destinationPrices: true, terms: true }
     });
 
-    // 4. Handle Tambahan Gambar Baru (jika ada upload file baru)
-    if (images && Array.isArray(images)) {
-      for (const url of images) {
-        await prisma.carImage.create({
-          data: { carId: id, imageUrl: url }
-        });
-      }
-    } else if (req.files && req.files['images'] && req.files['images'].length > 0) {
+    // 4. Handle Tambahan Gambar Baru via Upload File
+    if (req.files && req.files['images'] && req.files['images'].length > 0) {
       for (const file of req.files['images']) {
         await prisma.carImage.create({
           data: {
@@ -194,14 +198,8 @@ exports.updateCar = async (req, res) => {
       }
     }
 
-    // 5. Handle Tambahan Video Baru (jika ada upload file baru)
-    if (videos && Array.isArray(videos)) {
-      for (const url of videos) {
-        await prisma.carVideo.create({
-          data: { carId: id, videoUrl: url }
-        });
-      }
-    } else if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
+    // 5. Handle Tambahan Video Baru via Upload File
+    if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
       for (const file of req.files['videos']) {
         await prisma.carVideo.create({
           data: {
@@ -212,7 +210,7 @@ exports.updateCar = async (req, res) => {
       }
     }
 
-    // Ambil data terbaru secara lengkap
+    // Ambil data terbaru secara lengkap untuk dikembalikan ke frontend
     const finalCar = await prisma.car.findUnique({
       where: { id },
       include: { images: true, videos: true, destinationPrices: true, terms: true }
@@ -230,26 +228,31 @@ exports.deleteCar = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Ambil data gambar & video untuk dihapus file fisiknya dari server
     const carImages = await prisma.carImage.findMany({ where: { carId: id } });
     const carVideos = await prisma.carVideo.findMany({ where: { carId: id } });
 
     carImages.forEach(img => {
-      if (img.imageUrl.startsWith('/uploads/')) {
-        const filePath = path.join(__dirname, '..', img.imageUrl);
-        if (fs.existsSync(filePath)) {
-          try { fs.unlinkSync(filePath); } catch (err) {}
+      try {
+        if (img.imageUrl.startsWith('/uploads/')) {
+          const cleanPath = img.imageUrl.replace(/^\/+/, '');
+          const filePath = path.join(__dirname, '..', cleanPath);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         }
-      }
+      } catch (err) {}
     });
 
     carVideos.forEach(vid => {
-      if (vid.videoUrl.startsWith('/uploads/')) {
-        const filePath = path.join(__dirname, '..', vid.videoUrl);
-        if (fs.existsSync(filePath)) {
-          try { fs.unlinkSync(filePath); } catch (err) {}
+      try {
+        if (vid.videoUrl.startsWith('/uploads/')) {
+          const cleanPath = vid.videoUrl.replace(/^\/+/, '');
+          const filePath = path.join(__dirname, '..', cleanPath);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         }
-      }
+      } catch (err) {}
     });
 
     await prisma.$transaction(async (tx) => {
