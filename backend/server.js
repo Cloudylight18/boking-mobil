@@ -17,7 +17,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// 2. Setup Socket.io (Sudah diperbarui dengan domain baru)
+// 2. Setup Socket.io
 const io = new Server(server, {
   cors: {
     origin: [
@@ -40,19 +40,22 @@ app.use(helmet({
 // ==========================================
 app.use(cors({
   origin: [
-    'https://hitsbahtransport.com', // URL Frontend baru Anda
+    'https://hitsbahtransport.com',
     'http://localhost:3000',
     'http://localhost:5173'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // Wajib true agar frontend diizinkan mengambil data dengan aman
+  credentials: true
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Agar foto dan video di folder public/uploads bisa diakses langsung via URL browser
+// ==========================================
+// PENTING: AKSES PUBLIK FOLDER UPLOADS
+// ==========================================
+// Mengarahkan URL /uploads ke folder fisik public/uploads di root direktori backend
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // ==========================================
@@ -104,11 +107,10 @@ io.on('connection', (socket) => {
   });
 });
 
-// 7. Jalankan Server dengan Terminal yang Keren & Berwarna Menyala
+// 7. Jalankan Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, async () => {
   try {
-    // Cek koneksi database saat startup
     await prisma.$queryRaw`SELECT 1`;
     
     console.clear();
@@ -128,5 +130,4 @@ server.listen(PORT, async () => {
   }
 });
 
-// Export io dan prisma agar bisa dipanggil dari file lain
 module.exports = { io, prisma };

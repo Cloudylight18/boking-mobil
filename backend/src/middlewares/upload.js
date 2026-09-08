@@ -2,6 +2,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Diselaraskan agar folder uploads berada di root/public/uploads
 const uploadDir = path.join(__dirname, '../../public/uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -38,7 +39,7 @@ const upload = multer({
   storage: storage,
   limits: { 
     fileSize: 50 * 1024 * 1024, // 50MB per file
-    files: 10 // Ditingkatkan menjadi 10 file sekaligus sesuai permintaan
+    files: 10 // Maksimal 10 file sekaligus
   }, 
   fileFilter: fileFilter
 });
