@@ -31,12 +31,12 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
   const [cars, setCars] = useState<CarItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Mendapatkan Base URL dari environment variable atau fallback produksi Hostinger
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+
   useEffect(() => {
     const fetchCars = async () => {
       try {
-        // HARDCODE URL BACKEND PRODUKSI: Tidak bergantung pada .env / localhost lagi
-        const backendUrl = 'https://steelblue-fox-791845.hostingersite.com';
-        
         const response = await axios.get(`${backendUrl}/api/cars`);
         setCars(response.data.data || []);
       } catch (error) {
@@ -46,7 +46,7 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
       }
     };
     fetchCars();
-  }, []);
+  }, [backendUrl]);
 
   // Filter mobil berdasarkan input pencarian nama mobil
   const filteredCars = cars.filter(car => 
@@ -85,9 +85,10 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {filteredCars.map((car) => {
             const activeImg = car.images?.[0]?.imageUrl;
-            const backendUrl = 'https://steelblue-fox-791845.hostingersite.com';
             const mainImg = activeImg 
-              ? (activeImg.startsWith('http') ? activeImg : `${backendUrl}${activeImg}`)
+              ? (activeImg.startsWith('http') 
+                  ? activeImg 
+                  : `${backendUrl}${activeImg.startsWith('/') ? '' : '/'}${activeImg}`)
               : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80';
 
             return (
@@ -148,7 +149,7 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
                 </div>
 
                 <div className="p-5 sm:p-6 pt-3">
-                  <div className="w-full bg-slate-100 dark:bg-slate-800/80 group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-teal-600 text-slate-800 dark:text-white group-hover:text-white font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 text-sm shadow-md group-hover:shadow-lg group-hover:shadow-emerald-600/30">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800/80 group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-teal-600 text-slate-800 dark:text-white group-hover:text-white font-bold py-3 px-5 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 text-sm shadow-md group-hover:shadow-lg group-hover:shadow-emerald-600/35 cursor-pointer">
                     <span>Lihat Detail & Rute</span> 
                     <ArrowRight size={16} className="transform group-hover:translate-x-1.5 transition-transform duration-300" />
                   </div>

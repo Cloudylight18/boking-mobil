@@ -136,19 +136,30 @@ export default function DetailMobilPage() {
         
         {/* Kolom Kiri: Galeri Foto & Video */}
         <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {car.images && car.images.length > 0 && (
-              <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[450px] shrink-0">
+          <div className="flex flex-col gap-4">
+            {/* Foto Utama */}
+            <div className={`w-full rounded-3xl overflow-hidden border h-[400px] sm:h-[450px] shadow-xl ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+              <img 
+                src={mainImgUrl} 
+                alt={car.name} 
+                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
+              />
+            </div>
+
+            {/* Thumbnail Grid Foto */}
+            {car.images && car.images.length > 1 && (
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
                 {car.images.map((img) => {
                   const thumbUrl = img.imageUrl.startsWith('http') 
                     ? img.imageUrl 
                     : `${backendUrl}${img.imageUrl.startsWith('/') ? '' : '/'}${img.imageUrl}`;
+                  const isSelected = selectedImage === img.imageUrl;
                   return (
                     <button 
                       key={img.id}
                       onClick={() => setSelectedImage(img.imageUrl)}
-                      className={`w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                        selectedImage === img.imageUrl ? 'border-indigo-600 scale-105 shadow-md' : 'border-slate-300 dark:border-slate-800 opacity-60'
+                      className={`h-24 rounded-2xl overflow-hidden border-2 transition-all shadow-md relative cursor-pointer ${
+                        isSelected ? 'border-indigo-600 dark:border-indigo-500 scale-95 ring-2 ring-indigo-500/30' : 'border-slate-300 dark:border-slate-800 opacity-70 hover:opacity-100'
                       }`}
                     >
                       <img src={thumbUrl} alt="Thumbnail" className="w-full h-full object-cover" />
@@ -157,29 +168,21 @@ export default function DetailMobilPage() {
                 })}
               </div>
             )}
-
-            <div className={`flex-1 rounded-3xl overflow-hidden border h-[450px] shadow-xl ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
-              <img 
-                src={mainImgUrl} 
-                alt={car.name} 
-                className="w-full h-full object-cover" 
-              />
-            </div>
           </div>
 
           {/* Galeri Video (Jika Ada) */}
           {car.videos && car.videos.length > 0 && (
-            <div className="pt-2">
+            <div className="pt-4">
               <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Video size={16} className="text-indigo-500" /> Video Dokumentasi Unit
+                <Video size={16} className="text-indigo-500" /> Video Dokumentasi Unit (Resolusi HD)
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {car.videos.map((vid) => {
                   const vidUrl = vid.videoUrl.startsWith('http') 
                     ? vid.videoUrl 
                     : `${backendUrl}${vid.videoUrl.startsWith('/') ? '' : '/'}${vid.videoUrl}`;
                   return (
-                    <div key={vid.id} className="h-44 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                    <div key={vid.id} className="h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-xl">
                       <video src={vidUrl} controls className="w-full h-full object-cover" />
                     </div>
                   );

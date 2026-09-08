@@ -32,7 +32,7 @@ export default function AdminCarsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Mendapatkan Base URL dari instance API untuk penanganan file gambar
+  // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan file gambar
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function AdminCarsPage() {
     try {
       await API.delete(`/api/cars/${id}`);
       toast.success('Armada berhasil dihapus.');
-      fetchCars();
+      fetchCars(); // Memuat ulang data secara otomatis agar langsung ter-update di UI
     } catch (error) {
       toast.error('Gagal menghapus armada.');
       hideLoader();
