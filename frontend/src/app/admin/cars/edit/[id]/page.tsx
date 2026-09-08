@@ -171,9 +171,9 @@ export default function AdminCarEditPage() {
       formData.append('status', status);
       formData.append('destinationPrices', JSON.stringify(destinationPrices));
       
-      // Kirim ID gambar/video yang dihapus jika backend mendukungnya
-      deletedImageIds.forEach((imgId) => formData.append('deletedImages[]', imgId));
-      deletedVideoIds.forEach((vidId) => formData.append('deletedVideos[]', vidId));
+      // 🔥 MENGGUNAKAN JSON.STRINGIFY AGAR BACKEND BISA MEMBACA ID HAPUS DENGAN VALID
+      formData.append('deletedImages', JSON.stringify(deletedImageIds));
+      formData.append('deletedVideos', JSON.stringify(deletedVideoIds));
 
       terms.forEach((t) => formData.append('terms[]', t));
       
