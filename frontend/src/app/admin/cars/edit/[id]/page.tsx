@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Upload, X, Plus, Video, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Plus, Video, Image as ImageIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
@@ -26,17 +26,26 @@ export default function AdminCarEditPage() {
   const [serviceTypeInput, setServiceTypeInput] = useState<'WITH_DRIVER' | 'CARTER_ALL_IN'>('WITH_DRIVER');
   const [priceInput, setPriceInput] = useState('');
 
-  // State Foto (Maksimal 10 File)
+  // State File Lama dari Database
+  const [existingImages, setExistingImages] = useState<Array<{ id: string; imageUrl: string }>>([]);
+  const [existingVideos, setExistingVideos] = useState<Array<{ id: string; videoUrl: string }>>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+  const [deletedVideoIds, setDeletedVideoIds] = useState<string[]>([]);
+
+  // State Foto Baru (Maksimal total file)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  // State Video (Tampilan Full Resolusi Cover)
+  // State Video Baru
   const [selectedVideos, setSelectedVideos] = useState<File[]>([]);
   const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
   
   const [termInput, setTermInput] = useState('');
   const [terms, setTerms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Mendapatkan Base URL backend untuk file lama
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
 
   useEffect(() => {
     if (!id) return;
@@ -49,6 +58,10 @@ export default function AdminCarEditPage() {
           setName(car.name);
           setCondition(car.condition);
           setStatus(car.status);
+          
+          if (car.images) setExistingImages(car.images);
+          if (car.videos) setExistingVideos(car.videos);
+
           if (car.destinationPrices) {
             setDestinationPrices(car.destinationPrices.map((dp: any) => ({
               destination: dp.destination,
@@ -72,12 +85,25 @@ export default function AdminCarEditPage() {
     fetchCar();
   }, [id]);
 
+  // Handler Hapus Foto Lama
+  const handleRemoveExistingImage = (imageId: string) => {
+    setExistingImages(existingImages.filter(img => img.id !== imageId));
+    setDeletedImageIds([...deletedImageIds, imageId]);
+  };
+
+  // Handler Hapus Video Lama
+  const handleRemoveExistingVideo = (videoId: string) => {
+    setExistingVideos(existingVideos.filter(vid => vid.id !== videoId));
+    setDeletedVideoIds([...deletedVideoIds, videoId]);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
+      const totalActiveImages = existingImages.length + selectedFiles.length + filesArray.length;
 
-      if (selectedFiles.length + filesArray.length > 10) {
-        toast.error('Maksimal total foto tambahan adalah 10 file.');
+      if (totalActiveImages > 10) {
+        toast.error('Maksimal total foto adalah 10 file.');
         return;
       }
 
@@ -137,7 +163,7 @@ export default function AdminCarEditPage() {
       return;
     }
 
-    showLoader(); // Nyalakan animasi loading global berputar logo Hitsbah
+    showLoader(); 
     try {
       const formData = new FormData();
       formData.append('name', name);
@@ -145,6 +171,10 @@ export default function AdminCarEditPage() {
       formData.append('status', status);
       formData.append('destinationPrices', JSON.stringify(destinationPrices));
       
+      // Kirim ID gambar/video yang dihapus jika backend mendukungnya
+      deletedImageIds.forEach((imgId) => formData.append('deletedImages[]', imgId));
+      deletedVideoIds.forEach((vidId) => formData.append('deletedVideos[]', vidId));
+
       terms.forEach((t) => formData.append('terms[]', t));
       
       selectedFiles.forEach((file) => {
@@ -293,61 +323,114 @@ export default function AdminCarEditPage() {
             ></textarea>
           </div>
 
-          {/* Tambah Foto Baru (Maksimal 10 File) */}
+          {/* --- MANAJEMEN FOTO (LAMA & BARU) --- */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-xs font-bold uppercase opacity-70 flex items-center gap-1.5">
-                <ImageIcon size={14} className="text-indigo-500" /> Tambah Foto Baru (Maks. 10 File)
+                <ImageIcon size={14} className="text-indigo-500" /> Kelola Foto Armada (Maks. 10 File)
               </label>
-              <span className="text-xs font-bold text-indigo-500">{selectedFiles.length}/10 File terpilih</span>
+              <span className="text-xs font-bold text-indigo-500">{existingImages.length + selectedFiles.length}/10 Total File</span>
             </div>
 
+            {/* Foto Lama dari Database */}
+            {existingImages.length > 0 && (
+              <div className="mb-4">
+                <p className="text-[11px] font-bold uppercase text-slate-400 mb-2">Foto Saat Ini (Tersimpan):</p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                  {existingImages.map((img) => {
+                    const imgUrl = img.imageUrl.startsWith('http') ? img.imageUrl : `${backendUrl}${img.imageUrl.startsWith('/') ? '' : '/'}${img.imageUrl}`;
+                    return (
+                      <div key={img.id} className="relative group h-32 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900 shadow-md">
+                        <img src={imgUrl} alt="Existing" className="w-full h-full object-cover" />
+                        <button 
+                          type="button"
+                          onClick={() => handleRemoveExistingImage(img.id)}
+                          className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition cursor-pointer"
+                          title="Hapus foto ini"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Upload Foto Baru */}
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Upload size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Klik untuk pilih foto tambahan</span>
+              <span>Klik untuk tambah foto baru</span>
               <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
             </label>
 
             {previews.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                {previews.map((src, index) => (
-                  <div key={index} className="relative group h-32 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900 shadow-md">
-                    <img src={src} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                    <button 
-                      type="button"
-                      onClick={() => handleRemoveFile(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
+              <div>
+                <p className="text-[11px] font-bold uppercase text-indigo-400 mb-2">Foto Baru yang Akan Ditambahkan:</p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                  {previews.map((src, index) => (
+                    <div key={index} className="relative group h-32 rounded-2xl overflow-hidden border border-indigo-500 dark:border-indigo-500 bg-slate-900 shadow-md">
+                      <img src={src} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => handleRemoveFile(index)}
+                        className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition cursor-pointer"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Tambah Video Baru (Tampilan Full Resolusi Cover) */}
+          {/* --- MANAJEMEN VIDEO (LAMA & BARU) --- */}
           <div>
             <label className="block text-xs font-bold uppercase mb-2 opacity-70 flex items-center gap-1.5">
-              <Video size={14} className="text-indigo-500" /> Tambah Video Baru (Resolusi Full Cover)
+              <Video size={14} className="text-indigo-500" /> Kelola Video Dokumentasi
             </label>
+
+            {/* Video Lama dari Database */}
+            {existingVideos.length > 0 && (
+              <div className="mb-4 space-y-3">
+                <p className="text-[11px] font-bold uppercase text-slate-400">Video Saat Ini (Tersimpan):</p>
+                {existingVideos.map((vid) => {
+                  const vidUrl = vid.videoUrl.startsWith('http') ? vid.videoUrl : `${backendUrl}${vid.videoUrl.startsWith('/') ? '' : '/'}${vid.videoUrl}`;
+                  return (
+                    <div key={vid.id} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                      <video src={vidUrl} controls className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => handleRemoveExistingVideo(vid.id)}
+                        className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 size={14} /> Hapus Video Ini
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Upload Video Baru */}
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Video size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Klik untuk pilih file video tambahan</span>
+              <span>Klik untuk tambah file video baru</span>
               <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onChange={handleVideoChange} className="hidden" />
             </label>
 
             {videoPreviews.length > 0 && (
               <div className="grid grid-cols-1 gap-4">
                 {videoPreviews.map((src, index) => (
-                  <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                  <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-indigo-500 dark:border-indigo-500 bg-slate-950 shadow-md">
                     <video src={src} controls className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={() => handleRemoveVideo(index)}
-                      className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1"
+                      className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1 cursor-pointer"
                     >
-                      <X size={14} /> Hapus Video
+                      <X size={14} /> Batal Video Baru
                     </button>
                   </div>
                 ))}
@@ -368,7 +451,7 @@ export default function AdminCarEditPage() {
               <button 
                 type="button" 
                 onClick={handleAddTerm}
-                className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-500 transition shadow-md"
+                className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-500 transition shadow-md cursor-pointer"
               >
                 Tambah Syarat
               </button>
@@ -377,7 +460,7 @@ export default function AdminCarEditPage() {
               {terms.map((term, index) => (
                 <li key={index} className="flex justify-between items-center bg-slate-100 dark:bg-slate-900/80 px-4 py-2.5 rounded-xl text-xs border border-slate-200 dark:border-slate-700">
                   <span>{index + 1}. {term}</span>
-                  <button type="button" onClick={() => handleRemoveTerm(index)} className="text-rose-500 font-bold">Hapus</button>
+                  <button type="button" onClick={() => handleRemoveTerm(index)} className="text-rose-500 font-bold cursor-pointer">Hapus</button>
                 </li>
               ))}
             </ul>
