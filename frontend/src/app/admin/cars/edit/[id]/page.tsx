@@ -2,17 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Upload, X, Plus, Video } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Plus, Video, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
-import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { API } from '@/app/utils/api'; 
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 export default function AdminCarEditPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id;
+  const { showLoader, hideLoader } = useLoading();
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [name, setName] = useState('');
@@ -24,24 +26,23 @@ export default function AdminCarEditPage() {
   const [serviceTypeInput, setServiceTypeInput] = useState<'WITH_DRIVER' | 'CARTER_ALL_IN'>('WITH_DRIVER');
   const [priceInput, setPriceInput] = useState('');
 
-  // State Foto
+  // State Foto (Maksimal 10 File)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  // State Video
+  // State Video (Tampilan Full Resolusi Cover)
   const [selectedVideos, setSelectedVideos] = useState<File[]>([]);
   const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
   
   const [termInput, setTermInput] = useState('');
   const [terms, setTerms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     const fetchCar = async () => {
+      showLoader();
       try {
-        // Menggunakan instance API global
         const res = await API.get('/api/cars');
         const car = res.data.data.find((item: any) => item.id === id);
         if (car) {
@@ -55,7 +56,9 @@ export default function AdminCarEditPage() {
               price: dp.price.toString()
             })));
           }
-          setTerms(car.terms.map((t: any) => t.description));
+          if (car.terms) {
+            setTerms(car.terms.map((t: any) => t.description));
+          }
         } else {
           toast.error('Data armada tidak ditemukan.');
         }
@@ -63,6 +66,7 @@ export default function AdminCarEditPage() {
         toast.error('Gagal memuat data armada.');
       } finally {
         setIsLoading(false);
+        hideLoader();
       }
     };
     fetchCar();
@@ -71,6 +75,12 @@ export default function AdminCarEditPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
+
+      if (selectedFiles.length + filesArray.length > 10) {
+        toast.error('Maksimal total foto tambahan adalah 10 file.');
+        return;
+      }
+
       setSelectedFiles([...selectedFiles, ...filesArray]);
       const newPreviews = filesArray.map(file => URL.createObjectURL(file));
       setPreviews([...previews, ...newPreviews]);
@@ -126,7 +136,8 @@ export default function AdminCarEditPage() {
       toast.error('Harap tambahkan minimal satu harga tujuan!');
       return;
     }
-    setIsSaving(true);
+
+    showLoader(); // Nyalakan animasi loading global berputar logo Hitsbah
     try {
       const formData = new FormData();
       formData.append('name', name);
@@ -144,7 +155,6 @@ export default function AdminCarEditPage() {
         formData.append('videos', video);
       });
 
-      // Menggunakan instance API global untuk proses update
       await API.put(`/api/cars/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -153,12 +163,12 @@ export default function AdminCarEditPage() {
       setTimeout(() => router.push('/admin/cars'), 1000);
     } catch (error) {
       toast.error('Gagal memperbarui armada.');
-      setIsSaving(false);
+      hideLoader();
     }
   };
 
   if (isLoading) {
-    return <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 flex items-center justify-center">Memuat data...</div>;
+    return <div className="min-h-screen bg-slate-950 text-slate-400 flex items-center justify-center font-bold">Memuat data armada...</div>;
   }
 
   return (
@@ -172,7 +182,7 @@ export default function AdminCarEditPage() {
             <ArrowLeft size={16} /> Kembali ke Daftar Armada
           </Link>
           <h1 className="text-3xl font-extrabold tracking-tight mt-2">Edit Armada Mobil</h1>
-          <p className="text-sm opacity-70">Perbarui informasi tujuan tarif, foto, video, dan spesifikasi armada.</p>
+          <p className="text-sm opacity-70">Perbarui informasi tujuan tarif, foto, video resolusi penuh, dan spesifikasi armada.</p>
         </div>
 
         <form onSubmit={handleSubmit} className={`p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -283,9 +293,15 @@ export default function AdminCarEditPage() {
             ></textarea>
           </div>
 
-          {/* Tambah Foto Baru */}
+          {/* Tambah Foto Baru (Maksimal 10 File) */}
           <div>
-            <label className="block text-xs font-bold uppercase mb-2 opacity-70">Tambah Foto Baru</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-xs font-bold uppercase opacity-70 flex items-center gap-1.5">
+                <ImageIcon size={14} className="text-indigo-500" /> Tambah Foto Baru (Maks. 10 File)
+              </label>
+              <span className="text-xs font-bold text-indigo-500">{selectedFiles.length}/10 File terpilih</span>
+            </div>
+
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Upload size={18} className="text-indigo-600 dark:text-indigo-400" />
               <span>Klik untuk pilih foto tambahan</span>
@@ -293,7 +309,7 @@ export default function AdminCarEditPage() {
             </label>
 
             {previews.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 {previews.map((src, index) => (
                   <div key={index} className="relative group h-32 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900 shadow-md">
                     <img src={src} alt={`Preview ${index}`} className="w-full h-full object-cover" />
@@ -310,26 +326,29 @@ export default function AdminCarEditPage() {
             )}
           </div>
 
-          {/* Tambah Video Baru */}
+          {/* Tambah Video Baru (Tampilan Full Resolusi Cover) */}
           <div>
-            <label className="block text-xs font-bold uppercase mb-2 opacity-70">Tambah Video Baru (Opsional)</label>
+            <label className="block text-xs font-bold uppercase mb-2 opacity-70 flex items-center gap-1.5">
+              <Video size={14} className="text-indigo-500" /> Tambah Video Baru (Resolusi Full Cover)
+            </label>
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Video size={18} className="text-indigo-600 dark:text-indigo-400" />
               <span>Klik untuk pilih file video tambahan</span>
-              <input type="file" accept="video/*" multiple onChange={handleVideoChange} className="hidden" />
+              <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onChange={handleVideoChange} className="hidden" />
             </label>
 
             {videoPreviews.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {videoPreviews.map((src, index) => (
-                  <div key={index} className="relative group h-40 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                  <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                    {/* Tampilan video diatur penuh (full object-cover) */}
                     <video src={src} controls className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={() => handleRemoveVideo(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition z-10"
+                      className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1"
                     >
-                      <X size={14} />
+                      <X size={14} /> Hapus Video
                     </button>
                   </div>
                 ))}
@@ -374,8 +393,7 @@ export default function AdminCarEditPage() {
             </Link>
             <button 
               type="submit"
-              disabled={isSaving}
-              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white rounded-2xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer"
             >
               <Save size={18} /> Perbarui Armada
             </button>

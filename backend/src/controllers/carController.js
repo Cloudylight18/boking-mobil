@@ -21,15 +21,15 @@ exports.getCars = async (req, res) => {
   }
 };
 
-// POST: Tambah mobil baru dengan tarif tujuan, foto, dan video
+// POST: Tambah mobil baru (Menerima URL file yang sudah di-upload sebelumnya atau via multipart)
 exports.createCar = async (req, res) => {
   try {
-    const { name, condition, status, destinationPrices } = req.body;
+    const { name, condition, status, destinationPrices, images, videos } = req.body;
     
     let parsedDestinationPrices = [];
     if (destinationPrices) {
       try {
-        parsedDestinationPrices = JSON.parse(destinationPrices);
+        parsedDestinationPrices = typeof destinationPrices === 'string' ? JSON.parse(destinationPrices) : destinationPrices;
       } catch (e) {
         parsedDestinationPrices = [];
       }
@@ -38,17 +38,25 @@ exports.createCar = async (req, res) => {
     let termsArray = [];
     if (req.body['terms[]']) {
       termsArray = Array.isArray(req.body['terms[]']) ? req.body['terms[]'] : [req.body['terms[]']];
+    } else if (req.body.terms) {
+      termsArray = Array.isArray(req.body.terms) ? req.body.terms : [req.body.terms];
     }
 
+    // Menyiapkan data gambar (mendukung path dari file multipart langsung ATAU array URL string dari upload terpisah)
     let imageCreateData = [];
-    if (req.files && req.files['images'] && req.files['images'].length > 0) {
+    if (images && Array.isArray(images)) {
+      imageCreateData = images.map(url => ({ imageUrl: url }));
+    } else if (req.files && req.files['images'] && req.files['images'].length > 0) {
       imageCreateData = req.files['images'].map(file => ({
         imageUrl: `/uploads/${file.filename}`
       }));
     }
 
+    // Menyiapkan data video (mendukung path dari file multipart langsung ATAU array URL string dari upload terpisah)
     let videoCreateData = [];
-    if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
+    if (videos && Array.isArray(videos)) {
+      videoCreateData = videos.map(url => ({ videoUrl: url }));
+    } else if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
       videoCreateData = req.files['videos'].map(file => ({
         videoUrl: `/uploads/${file.filename}`
       }));
@@ -86,12 +94,12 @@ exports.createCar = async (req, res) => {
 exports.updateCar = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, condition, status, destinationPrices } = req.body;
+    const { name, condition, status, destinationPrices, images, videos } = req.body;
 
     let parsedDestinationPrices = [];
     if (destinationPrices) {
       try {
-        parsedDestinationPrices = JSON.parse(destinationPrices);
+        parsedDestinationPrices = typeof destinationPrices === 'string' ? JSON.parse(destinationPrices) : destinationPrices;
       } catch (e) {
         parsedDestinationPrices = [];
       }
@@ -100,6 +108,8 @@ exports.updateCar = async (req, res) => {
     let termsArray = [];
     if (req.body['terms[]']) {
       termsArray = Array.isArray(req.body['terms[]']) ? req.body['terms[]'] : [req.body['terms[]']];
+    } else if (req.body.terms) {
+      termsArray = Array.isArray(req.body.terms) ? req.body.terms : [req.body.terms];
     }
 
     const updatedCar = await prisma.car.update({
@@ -124,7 +134,14 @@ exports.updateCar = async (req, res) => {
       include: { images: true, videos: true, destinationPrices: true, terms: true }
     });
 
-    if (req.files && req.files['images'] && req.files['images'].length > 0) {
+    // Handle tambahan gambar baru (jika dikirim via URL array atau file multipart)
+    if (images && Array.isArray(images)) {
+      for (const url of images) {
+        await prisma.carImage.create({
+          data: { carId: id, imageUrl: url }
+        });
+      }
+    } else if (req.files && req.files['images'] && req.files['images'].length > 0) {
       for (const file of req.files['images']) {
         await prisma.carImage.create({
           data: {
@@ -135,7 +152,14 @@ exports.updateCar = async (req, res) => {
       }
     }
 
-    if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
+    // Handle tambahan video baru
+    if (videos && Array.isArray(videos)) {
+      for (const url of videos) {
+        await prisma.carVideo.create({
+          data: { carId: id, videoUrl: url }
+        });
+      }
+    } else if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
       for (const file of req.files['videos']) {
         await prisma.carVideo.create({
           data: {

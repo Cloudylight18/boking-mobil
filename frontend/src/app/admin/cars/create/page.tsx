@@ -2,15 +2,17 @@
 
 import React, { useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Upload, X, Plus, Video } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Plus, Video, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan hook global loading logo Hitsbah
 
 export default function AdminCarCreatePage() {
   const router = useRouter();
+  const { showLoader, hideLoader } = useLoading(); // Memanggil fungsi trigger loader global berputar
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const [name, setName] = useState('');
@@ -23,21 +25,26 @@ export default function AdminCarCreatePage() {
   const [serviceTypeInput, setServiceTypeInput] = useState<'WITH_DRIVER' | 'CARTER_ALL_IN'>('WITH_DRIVER');
   const [priceInput, setPriceInput] = useState('');
 
-  // State Foto
+  // State Foto (Maksimal 10 File)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  // State Video
+  // State Video (Tampilan Full Resolusi Cover)
   const [selectedVideos, setSelectedVideos] = useState<File[]>([]);
   const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
 
   const [termInput, setTermInput] = useState('');
   const [terms, setTerms] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
+      
+      if (selectedFiles.length + filesArray.length > 10) {
+        toast.error('Maksimal total foto yang dapat diunggah adalah 10 file.');
+        return;
+      }
+
       setSelectedFiles([...selectedFiles, ...filesArray]);
       const newPreviews = filesArray.map(file => URL.createObjectURL(file));
       setPreviews([...previews, ...newPreviews]);
@@ -93,7 +100,8 @@ export default function AdminCarCreatePage() {
       toast.error('Harap tambahkan minimal satu tarif tujuan!');
       return;
     }
-    setIsLoading(true);
+
+    showLoader(); // Nyalakan animasi loading global berputar dengan logo Hitsbah
     try {
       const formData = new FormData();
       formData.append('name', name);
@@ -111,7 +119,7 @@ export default function AdminCarCreatePage() {
         formData.append('videos', video);
       });
 
-      // Menggunakan API instance global menggantikan axios mentah ber-localhost
+      // Menggunakan API instance global dengan Axios Interceptor
       await API.post('/api/cars', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -120,7 +128,7 @@ export default function AdminCarCreatePage() {
       setTimeout(() => router.push('/admin/cars'), 1000);
     } catch (error) {
       toast.error('Gagal menyimpan armada baru.');
-      setIsLoading(false);
+      hideLoader(); // Matikan loader jika terjadi error
     }
   };
 
@@ -135,7 +143,7 @@ export default function AdminCarCreatePage() {
             <ArrowLeft size={16} /> Kembali ke Daftar Armada
           </Link>
           <h1 className="text-3xl font-extrabold tracking-tight mt-2">Tambah Armada Mobil Baru</h1>
-          <p className="text-sm opacity-70">Atur tarif tujuan, unggah foto dan video galeri, serta persyaratan sewa.</p>
+          <p className="text-sm opacity-70">Atur tarif tujuan, unggah foto (hingga 10 file) & video galeri resolusi penuh, serta persyaratan sewa.</p>
         </div>
 
         <form onSubmit={handleSubmit} className={`p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -248,17 +256,23 @@ export default function AdminCarCreatePage() {
             ></textarea>
           </div>
 
-          {/* Unggah Foto Mobil */}
+          {/* Unggah Foto Mobil (Maksimal 10 File) */}
           <div>
-            <label className="block text-xs font-bold uppercase mb-2 opacity-70">Unggah Foto Mobil</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-xs font-bold uppercase opacity-70 flex items-center gap-1.5">
+                <ImageIcon size={14} className="text-indigo-500" /> Unggah Foto Mobil (Maks. 10 File)
+              </label>
+              <span className="text-xs font-bold text-indigo-500">{selectedFiles.length}/10 File terpilih</span>
+            </div>
+            
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Upload size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Klik untuk pilih foto</span>
+              <span>Klik untuk pilih foto (bisa banyak sekaligus)</span>
               <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
             </label>
 
             {previews.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 {previews.map((src, index) => (
                   <div key={index} className="relative group h-32 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900 shadow-md">
                     <img src={src} alt={`Preview ${index}`} className="w-full h-full object-cover" />
@@ -275,26 +289,29 @@ export default function AdminCarCreatePage() {
             )}
           </div>
 
-          {/* Unggah Video Mobil */}
+          {/* Unggah Video Mobil (Tampilan Full Resolusi Cover) */}
           <div>
-            <label className="block text-xs font-bold uppercase mb-2 opacity-70">Unggah Video Mobil (Opsional)</label>
+            <label className="block text-xs font-bold uppercase mb-2 opacity-70 flex items-center gap-1.5">
+              <Video size={14} className="text-indigo-500" /> Unggah Video Mobil (Resolusi Full Cover)
+            </label>
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Video size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Klik untuk pilih file video (.mp4, .mov)</span>
-              <input type="file" accept="video/*" multiple onChange={handleVideoChange} className="hidden" />
+              <span>Klik untuk pilih file video (.mp4, .mov, .mkv)</span>
+              <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onChange={handleVideoChange} className="hidden" />
             </label>
 
             {videoPreviews.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {videoPreviews.map((src, index) => (
-                  <div key={index} className="relative group h-40 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                  <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                    {/* Tampilan video di-set full agar kualitas dan ukurannya bagus melingkupi kotak */}
                     <video src={src} controls className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={() => handleRemoveVideo(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition z-10"
+                      className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1"
                     >
-                      <X size={14} />
+                      <X size={14} /> Hapus Video
                     </button>
                   </div>
                 ))}
@@ -339,8 +356,7 @@ export default function AdminCarCreatePage() {
             </Link>
             <button 
               type="submit"
-              disabled={isLoading}
-              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white rounded-2xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center gap-2 cursor-pointer"
             >
               <Save size={18} /> Simpan Armada
             </button>

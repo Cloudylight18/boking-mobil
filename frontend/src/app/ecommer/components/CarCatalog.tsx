@@ -108,16 +108,6 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-80" />
-                    
-                    <span className={`absolute top-4 right-4 backdrop-blur-xl px-3.5 py-1 rounded-full text-xs font-bold shadow-lg border transition-transform duration-300 group-hover:scale-105 ${
-                      car.status === 'AVAILABLE' 
-                        ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
-                        : car.status === 'MAINTENANCE'
-                        ? 'bg-amber-500/90 text-white border-amber-400/30'
-                        : 'bg-rose-500/90 text-white border-rose-400/30'
-                    }`}>
-                      {car.status === 'AVAILABLE' ? '🟢 Tersedia' : car.status === 'MAINTENANCE' ? '🔧 Maintenance' : '🔴 Disewa'}
-                    </span>
                   </div>
 
                   <div className="p-5 sm:p-6">

@@ -8,6 +8,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 interface DestinationPrice {
   id: string;
@@ -45,6 +46,7 @@ interface CarDetail {
 export default function AdminCarDetailPage() {
   const params = useParams();
   const id = params?.id;
+  const { showLoader, hideLoader } = useLoading();
 
   const [car, setCar] = useState<CarDetail | null>(null);
   const [selectedImage, setSelectedImage] = useState<string>('');
@@ -57,8 +59,8 @@ export default function AdminCarDetailPage() {
   useEffect(() => {
     if (!id) return;
     const fetchCarDetail = async () => {
+      showLoader(); // Nyalakan animasi loading berputar logo Hitsbah
       try {
-        // Menggunakan instance API global yang otomatis terhubung ke base URL
         const response = await API.get('/api/cars');
         const foundCar = response.data.data.find((item: CarDetail) => item.id === id);
         if (foundCar) {
@@ -71,13 +73,14 @@ export default function AdminCarDetailPage() {
         toast.error('Gagal memuat detail armada');
       } finally {
         setIsLoading(false);
+        hideLoader(); // Matikan loading
       }
     };
     fetchCarDetail();
   }, [id]);
 
   if (isLoading) {
-    return <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 flex items-center justify-center font-medium">Memuat detail armada...</div>;
+    return <div className="min-h-screen bg-slate-950 text-slate-400 flex items-center justify-center font-bold">Memuat detail armada...</div>;
   }
 
   if (!car) {
@@ -141,17 +144,18 @@ export default function AdminCarDetailPage() {
             </div>
           )}
 
-          {/* Galeri Video (Jika ada) */}
+          {/* Galeri Video (Resolusi Full Cover) */}
           {car.videos && car.videos.length > 0 && (
             <div className="pt-4">
               <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Video size={16} className="text-indigo-500" /> Video Dokumentasi Armada
+                <Video size={16} className="text-indigo-500" /> Video Dokumentasi Armada (Resolusi HD)
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {car.videos.map((vid) => {
                   const vidUrl = vid.videoUrl.startsWith('http') ? vid.videoUrl : `${backendUrl}${vid.videoUrl}`;
                   return (
-                    <div key={vid.id} className="h-48 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                    <div key={vid.id} className="h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-xl">
+                      {/* Tampilan video di-set full object-cover agar HD dan proporsional */}
                       <video src={vidUrl} controls className="w-full h-full object-cover" />
                     </div>
                   );
@@ -165,15 +169,6 @@ export default function AdminCarDetailPage() {
         <div className="lg:col-span-5 flex flex-col justify-between">
           <div className={`p-8 rounded-3xl border shadow-xl ${isDarkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
             <div className="flex items-center justify-between mb-4">
-              <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                car.status === 'AVAILABLE' 
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
-                  : car.status === 'MAINTENANCE'
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-              }`}>
-                {car.status === 'AVAILABLE' ? '🟢 Tersedia' : car.status === 'MAINTENANCE' ? '🔧 Maintenance' : '🔴 Sedang Disewa'}
-              </span>
               <span className="text-xs font-semibold opacity-50 uppercase tracking-widest">Katalog VIP</span>
             </div>
 

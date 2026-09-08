@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Trash2, Edit3, Eye, Navigation, Car as CarIcon, Search, CheckCircle2, Wrench, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, Edit3, Eye, Navigation, Car as CarIcon, Search } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { formatRupiah } from '@/app/utils/formatRupiah';
-import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { API } from '@/app/utils/api'; 
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 interface DestinationPrice {
   id: string;
@@ -26,6 +27,7 @@ interface CarItem {
 }
 
 export default function AdminCarsPage() {
+  const { showLoader, hideLoader } = useLoading();
   const [cars, setCars] = useState<CarItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,6 +40,7 @@ export default function AdminCarsPage() {
   }, []);
 
   const fetchCars = async () => {
+    showLoader(); // Nyalakan loading global berputar logo Hitsbah
     try {
       const res = await API.get('/api/cars');
       setCars(res.data.data || []);
@@ -45,27 +48,27 @@ export default function AdminCarsPage() {
       toast.error('Gagal memuat data armada.');
     } finally {
       setIsLoading(false);
+      hideLoader(); // Matikan loading
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Yakin ingin menghapus armada ini beserta seluruh data tarifnya?')) return;
+    
+    showLoader();
     try {
       await API.delete(`/api/cars/${id}`);
       toast.success('Armada berhasil dihapus.');
       fetchCars();
     } catch (error) {
       toast.error('Gagal menghapus armada.');
+      hideLoader();
     }
   };
 
   const filteredCars = cars.filter(car => 
     car.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const availableCount = cars.filter(c => c.status === 'AVAILABLE').length;
-  const maintenanceCount = cars.filter(c => c.status === 'MAINTENANCE').length;
-  const unavailableCount = cars.filter(c => c.status === 'UNAVAILABLE').length;
 
   return (
     <AdminLayout>
@@ -79,7 +82,7 @@ export default function AdminCarsPage() {
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">Manajemen Armada Kendaraan</h1>
           <p className="text-sm opacity-70 mt-1">
-            Kelola katalog mobil, rute tujuan fleksibel, tarif layanan, dan status ketersediaan operasional secara real-time.
+            Kelola katalog mobil, rute tujuan fleksibel, dan tarif layanan secara real-time.
           </p>
         </div>
         <Link 
@@ -88,46 +91,6 @@ export default function AdminCarsPage() {
         >
           <Plus size={18} /> Tambah Armada Baru
         </Link>
-      </div>
-
-      {/* Quick Stats Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold">
-            <CarIcon size={22} />
-          </div>
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Total Unit</p>
-            <h4 className="text-2xl font-black">{cars.length}</h4>
-          </div>
-        </div>
-        <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
-            <CheckCircle2 size={22} />
-          </div>
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Tersedia</p>
-            <h4 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{availableCount}</h4>
-          </div>
-        </div>
-        <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
-            <Wrench size={22} />
-          </div>
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Maintenance</p>
-            <h4 className="text-2xl font-black text-amber-600 dark:text-amber-400">{maintenanceCount}</h4>
-          </div>
-        </div>
-        <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold">
-            <ShieldAlert size={22} />
-          </div>
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Disewa</p>
-            <h4 className="text-2xl font-black text-rose-600 dark:text-rose-400">{unavailableCount}</h4>
-          </div>
-        </div>
       </div>
 
       {/* Search Bar for Admin */}
@@ -164,7 +127,7 @@ export default function AdminCarsPage() {
                 className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden flex flex-col justify-between transition-all duration-300 shadow-xl shadow-slate-900/5 hover:shadow-2xl hover:-translate-y-1"
               >
                 <div>
-                  {/* Gambar & Status Badge */}
+                  {/* Gambar & Total Foto/Rute */}
                   <div className="relative h-56 w-full bg-slate-950 overflow-hidden group">
                     <img 
                       src={mainImage} 
@@ -173,16 +136,6 @@ export default function AdminCarsPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-85"></div>
                     
-                    <span className={`absolute top-4 right-4 px-3.5 py-1.5 rounded-full text-xs font-black uppercase backdrop-blur-xl shadow-lg border ${
-                      car.status === 'AVAILABLE' 
-                        ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
-                        : car.status === 'MAINTENANCE'
-                        ? 'bg-amber-500/90 text-white border-amber-400/30'
-                        : 'bg-rose-500/90 text-white border-rose-400/30'
-                    }`}>
-                      {car.status === 'AVAILABLE' ? '🟢 Tersedia' : car.status === 'MAINTENANCE' ? '🔧 Maintenance' : '🔴 Disewa'}
-                    </span>
-
                     <div className="absolute bottom-3 left-4 text-white">
                       <span className="text-[10px] font-bold uppercase tracking-widest bg-black/50 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 shadow-sm">
                         {car.images?.length || 0} Foto • {car.destinationPrices?.length || 0} Rute

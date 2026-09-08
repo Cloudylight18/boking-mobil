@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Printer, Download, Share2, Percent } from 'lucide-react';
+import { ArrowLeft, Printer, Download, Share2, Percent, MapPin, MessageCircle } from 'lucide-react';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import toast, { Toaster } from 'react-hot-toast';
 import * as htmlToImage from 'html-to-image';
 import { API } from '@/app/utils/api';
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 interface TransactionItem {
   id: string;
@@ -30,16 +31,18 @@ export default function AdminTransactionDetailPage() {
   const id = params?.id;
   const router = useRouter();
   const receiptRef = useRef<HTMLDivElement>(null);
+  const { showLoader, hideLoader } = useLoading();
 
   const [tx, setTx] = useState<TransactionItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // State untuk input diskon (tipe string & text agar mulus di HP tanpa tombol panah)
+  // State untuk input diskon (tipe string agar mulus di HP tanpa tombol panah)
   const [discountInput, setDiscountInput] = useState<string>('0');
 
   useEffect(() => {
     if (!id) return;
+    showLoader(); // Nyalakan global loading berputar logo Hitsbah
     API.get('/api/transactions')
       .then(res => {
         const found = (res.data.data || []).find((item: TransactionItem) => item.id === id);
@@ -51,13 +54,17 @@ export default function AdminTransactionDetailPage() {
         }
       })
       .catch(() => toast.error('Gagal memuat detail transaksi.'))
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        setIsLoading(false);
+        hideLoader();
+      });
   }, [id]);
 
   // Download gambar dengan lebar tetap agar optimal di HP maupun Desktop
   const handleDownloadImage = async () => {
     if (!receiptRef.current) return;
     setIsGenerating(true);
+    showLoader();
     try {
       const dataUrl = await htmlToImage.toPng(receiptRef.current, {
         quality: 0.95,
@@ -77,6 +84,7 @@ export default function AdminTransactionDetailPage() {
       toast.error('Gagal mengunduh gambar nota.');
     } finally {
       setIsGenerating(false);
+      hideLoader();
     }
   };
 
@@ -84,6 +92,7 @@ export default function AdminTransactionDetailPage() {
   const handleShareImage = async () => {
     if (!receiptRef.current) return;
     setIsGenerating(true);
+    showLoader();
     try {
       const blob = await htmlToImage.toBlob(receiptRef.current, {
         pixelRatio: 2,
@@ -96,6 +105,7 @@ export default function AdminTransactionDetailPage() {
       if (!blob) {
         toast.error('Gagal memproses gambar.');
         setIsGenerating(false);
+        hideLoader();
         return;
       }
 
@@ -109,6 +119,7 @@ export default function AdminTransactionDetailPage() {
             text: `Berikut adalah rincian nota transaksi perjalanan untuk ${tx?.customerName}.`,
           });
           setIsGenerating(false);
+          hideLoader();
           return;
         } catch (shareErr) {
           console.log(shareErr);
@@ -129,11 +140,12 @@ export default function AdminTransactionDetailPage() {
       toast.error('Gagal membagikan gambar.');
     } finally {
       setIsGenerating(false);
+      hideLoader();
     }
   };
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400">Memuat nota...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400 font-bold">Memuat nota transaksi...</div>;
   }
 
   if (!tx) {
@@ -147,7 +159,7 @@ export default function AdminTransactionDetailPage() {
 
   // Kalkulasi Keuangan Dinamis dengan Diskon Rupiah
   const discountVal = discountInput === '' ? 0 : Number(discountInput);
-  const normalPrice = tx.dpAmount + tx.remainingPay + (tx.discountAmount || 0); // Total harga awal sebelum diskon
+  const normalPrice = tx.dpAmount + tx.remainingPay + (tx.discountAmount || 0); 
   const finalTotal = Math.max(0, normalPrice - discountVal);
   const calculatedRemaining = Math.max(0, finalTotal - tx.dpAmount);
 
@@ -189,13 +201,26 @@ export default function AdminTransactionDetailPage() {
         ref={receiptRef}
         className="max-w-3xl mx-auto bg-white text-slate-900 p-6 sm:p-12 rounded-3xl shadow-2xl border border-slate-200 print:shadow-none print:border-none print:p-6 print:w-full overflow-hidden"
       >
-        
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-slate-200 pb-6 mb-6">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-indigo-600">HITSBAH TRANSPORT</h2>
-            <p className="text-xs text-slate-500 mt-1">Layanan Rental Mobil, Carter & Travel Profesional</p>
-            <p className="text-xs text-slate-500">WhatsApp: 0896-2302-1975</p>
+        {/* Header Nota dengan Logo di Kiri dan Info Kontak di Kanan */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6 mb-6">
+          <div className="flex items-center gap-3">
+            {/* Logo icon.png */}
+            <img src="/icon.png" alt="Hitsbah Logo" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover shadow-md border border-slate-200 shrink-0" />
+            <div>
+              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-indigo-600">HITSBAH TRANSPORT</h2>
+              {/* Alamat dengan Icon */}
+              <p className="text-xs text-slate-600 mt-1 flex items-start gap-1 max-w-sm">
+                <MapPin size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                <span>Pangauban, Kec. Lelea, Kabupaten Indramayu, Jawa Barat 45261</span>
+              </p>
+              {/* WhatsApp dengan Icon */}
+              <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
+                <MessageCircle size={14} className="text-emerald-600 shrink-0" />
+                <span className="font-semibold">0896-2302-1975</span>
+              </p>
+            </div>
           </div>
+          
           <div className="text-left sm:text-right w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end">
             <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase bg-indigo-50 text-indigo-600 border border-indigo-200">
               {tx.serviceType}
@@ -269,7 +294,7 @@ export default function AdminTransactionDetailPage() {
               />
             </div>
 
-            {/* Tampilan Diskon dengan Nominal Rupiah (Selalu tampil di cetak/download gambar) */}
+            {/* Tampilan Diskon dengan Nominal Rupiah */}
             <div className="flex justify-between text-emerald-600 font-medium">
               <span>Potongan Diskon Rupiah:</span>
               <span>(-) {formatRupiah(discountVal)}</span>
@@ -292,15 +317,23 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 pt-6 border-t border-slate-200 text-xs text-slate-600">
+        {/* Bagian Catatan & Hormat Kami (Tanpa space tanda tangan berlebih) */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 pt-6 border-t border-slate-200 text-xs text-slate-600 mb-8">
           <div>
             <p className="font-bold mb-1 text-slate-900">Catatan Penting:</p>
             <p className="max-w-xs">Harap melunasi sisa pembayaran sebelum perjalanan dimulai atau kepada supir bertugas.</p>
           </div>
           <div className="text-left sm:text-center w-full sm:w-auto">
-            <p className="mb-12 font-medium">Hormat Kami,</p>
-            <p className="font-bold border-t border-slate-400 pt-1 px-4 sm:px-8 text-slate-900">Admin Hitsbah Transport</p>
+            <p className="mb-2 font-medium">Hormat Kami,</p>
+            <p className="font-bold pt-1 text-slate-900">Owner Hitsbah Transport</p>
           </div>
+        </div>
+
+        {/* Ucapan Terima Kasih di Tengah Paling Bawah */}
+        <div className="pt-6 border-t border-slate-100 text-center">
+          <p className="text-xs sm:text-sm font-extrabold text-indigo-600 tracking-wide">
+            Terima kasih sudah mempercayai layanan kami Hitsbah Transport ✨
+          </p>
         </div>
 
       </div>
