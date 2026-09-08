@@ -2,14 +2,7 @@ const prisma = require('../utils/prisma');
 
 exports.getDashboardStats = async (req, res) => {
   try {
-    // 1. Statistik Armada Mobil
-    const cars = await prisma.car.findMany();
-    const totalCars = cars.length;
-    const availableCars = cars.filter(c => c.status === 'AVAILABLE').length;
-    const maintenanceCars = cars.filter(c => c.status === 'MAINTENANCE').length;
-    const unavailableCars = cars.filter(c => c.status === 'UNAVAILABLE').length;
-
-    // 2. Statistik Transaksi & Keuangan POS
+    // 1. Ambil Semua Transaksi POS untuk Rekapitulasi Pendapatan
     const transactions = await prisma.transaction.findMany({
       orderBy: { createdAt: 'desc' }
     });
@@ -17,16 +10,40 @@ exports.getDashboardStats = async (req, res) => {
     let totalRevenue = 0;
     let totalDp = 0;
     let totalRemaining = 0;
+    let currentMonthRevenue = 0; 
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0 - 11
+
+    // Struktur penampung pendapatan per bulan (Index 0 = Januari, 1 = Februari, dst.)
+    const monthlyRevenueData = Array(12).fill(0);
 
     transactions.forEach(t => {
       const dp = Number(t.dpAmount || 0);
       const remaining = Number(t.remainingPay || 0);
+      const txTotal = dp + remaining;
+
       totalDp += dp;
       totalRemaining += remaining;
-      totalRevenue += (dp + remaining);
+      totalRevenue += txTotal;
+
+      const createdDate = new Date(t.createdAt);
+      const txYear = createdDate.getFullYear();
+      const txMonth = createdDate.getMonth();
+
+      // Akumulasi berdasarkan tahun berjalan
+      if (txYear === currentYear) {
+        monthlyRevenueData[txMonth] += txTotal;
+
+        // Pendapatan bulan ini yang sedang berjalan
+        if (txMonth === currentMonth) {
+          currentMonthRevenue += txTotal;
+        }
+      }
     });
 
-    // 3. Statistik Knowledge AI Aktif (Aman dari error)
+    // 2. Statistik Knowledge AI Aktif
     let knowledgeCount = 0;
     try {
       knowledgeCount = await prisma.aiKnowledge.count({
@@ -36,30 +53,39 @@ exports.getDashboardStats = async (req, res) => {
       knowledgeCount = 0;
     }
 
-    // 4. Total Pengunjung E-commerce (Aman dari error)
-    let visitorCount = 0;
+    // 3. Statistik Pengunjung E-commerce Berdasarkan Waktu
+    let visitorStats = { total: 0, today: 0, month: 0, year: 0 };
     try {
-      visitorCount = await prisma.visitorLog.count();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+      const [total, today, month, year] = await Promise.all([
+        prisma.visitorLog.count(),
+        prisma.visitorLog.count({ where: { createdAt: { gte: startOfDay } } }),
+        prisma.visitorLog.count({ where: { createdAt: { gte: startOfMonth } } }),
+        prisma.visitorLog.count({ where: { createdAt: { gte: startOfYear } } })
+      ]);
+
+      visitorStats = { total, today, month, year };
     } catch (e) {
-      visitorCount = 0;
+      console.error('Error visitor stats:', e);
     }
 
-    // 5. 5 Transaksi POS Terbaru
+    // 4. 5 Transaksi POS Terbaru
     const recentTransactions = transactions.slice(0, 5);
 
     res.status(200).json({
       success: true,
       data: {
-        totalCars,
-        availableCars,
-        maintenanceCars,
-        unavailableCars,
         totalRevenue,
         totalDp,
         totalRemaining,
+        currentMonthRevenue,
+        monthlyRevenueData, // Array pendapatan dari Januari s.d Desember tahun berjalan
         totalTransactions: transactions.length,
         knowledgeCount,
-        visitorCount,
+        visitorStats,
         recentTransactions
       }
     });
@@ -78,7 +104,6 @@ exports.recordVisitor = async (req, res) => {
   }
 };
 
-// FUNGSI BARU: Untuk mereset (restart) angka pengunjung menjadi 0
 exports.resetVisitors = async (req, res) => {
   try {
     await prisma.visitorLog.deleteMany({});

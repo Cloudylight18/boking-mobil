@@ -28,7 +28,8 @@ interface DashboardStats {
   totalRevenue: number;
   totalDp: number;
   totalRemaining: number;
-  currentMonthRevenue: number; // Pendapatan bulan ini berdasarkan tanggal pembuatan nota
+  currentMonthRevenue: number; 
+  monthlyRevenueData: number[]; // Data array pendapatan [Jan, Feb, Mar, ..., Des]
   totalTransactions: number;
   knowledgeCount: number;
   visitorStats: {
@@ -60,6 +61,9 @@ export default function DashboardAdmin() {
 
   const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
+
+  // State untuk melacak pilihan bulan pada fitur tracking pendapatan bulanan (Default ke bulan aktif saat ini)
+  const [selectedTrackingMonth, setSelectedTrackingMonth] = useState<number>(new Date().getMonth());
 
   useEffect(() => {
     setIsMounted(true);
@@ -131,6 +135,11 @@ export default function DashboardAdmin() {
     if (!selectedDateStr) return true;
     return tx.travelDate === selectedDateStr;
   });
+
+  // Mendapatkan nominal pendapatan berdasarkan bulan yang dipilih di dropdown tracking
+  const trackedMonthRevenue = stats?.monthlyRevenueData 
+    ? stats.monthlyRevenueData[selectedTrackingMonth] 
+    : 0;
 
   return (
     <AdminLayout>
@@ -206,28 +215,38 @@ export default function DashboardAdmin() {
               </div>
             </div>
 
-            {/* --- PENDAPATAN BULAN INI & AI KNOWLEDGE --- */}
+            {/* --- TRACKING PENDAPATAN BULANAN & AI KNOWLEDGE --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               
-              {/* Kartu Pendapatan Berdasarkan Tanggal Pembuatan Nota Bulan Ini */}
+              {/* Kartu Tracking Pendapatan Per Bulan dengan Pilihan Interaktif */}
               <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col justify-between">
                 <div>
-                  <div className="flex justify-between items-center mb-3">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
                     <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
-                      <CalendarDays size={18} className="text-indigo-500" /> Pendapatan Bulan Ini
+                      <CalendarDays size={18} className="text-indigo-500" /> Tracking Bulanan
                     </h3>
-                    <span className="text-[10px] px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
-                      {monthNames[month]} {year}
-                    </span>
+                    
+                    {/* Dropdown Pilihan Bulan (Mulai Januari s.d Desember, termasuk September) */}
+                    <select
+                      value={selectedTrackingMonth}
+                      onChange={(e) => setSelectedTrackingMonth(Number(e.target.value))}
+                      className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-indigo-600 dark:text-indigo-400 focus:outline-none cursor-pointer"
+                    >
+                      {monthNames.map((mName, idx) => (
+                        <option key={idx} value={idx}>
+                          Bulan: {mName} {year}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <p className="text-[11px] sm:text-xs opacity-70 leading-relaxed mb-4">
-                    Akumulasi nilai nota yang dibuat admin pada bulan berjalan (meskipun jadwal sewa untuk bulan depan).
+                    Akumulasi nilai nota yang dibuat admin pada bulan <strong className="text-indigo-500">{monthNames[selectedTrackingMonth]}</strong>.
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex justify-between items-center">
-                  <span className="text-xs font-bold opacity-80">Total Input Bulan Ini</span>
+                  <span className="text-xs font-bold opacity-80">Pendapatan {monthNames[selectedTrackingMonth]}</span>
                   <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
-                    {formatRupiah(stats?.currentMonthRevenue || 0)}
+                    {formatRupiah(trackedMonthRevenue)}
                   </span>
                 </div>
               </div>
