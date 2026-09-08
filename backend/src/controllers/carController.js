@@ -88,11 +88,11 @@ exports.createCar = async (req, res) => {
   }
 };
 
-// PUT: Update mobil berdasarkan ID (Anti-Crash pada Penghapusan File)
+// PUT: Update mobil berdasarkan ID (Dengan Universal Parser untuk Hapus Foto/Video)
 exports.updateCar = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, condition, status, destinationPrices, images, videos } = req.body;
+    const { name, condition, status, destinationPrices } = req.body;
 
     let parsedDestinationPrices = [];
     if (destinationPrices) {
@@ -110,10 +110,16 @@ exports.updateCar = async (req, res) => {
       termsArray = Array.isArray(req.body.terms) ? req.body.terms : [req.body.terms];
     }
 
-    // 1. Tangkap array ID gambar yang dihapus secara aman
+    // --- UNIVERSAL PARSER UNTUK HAPUS FOTO ---
     let deletedImagesArray = [];
-    if (req.body['deletedImages[]']) {
-      deletedImagesArray = Array.isArray(req.body['deletedImages[]']) ? req.body['deletedImages[]'] : [req.body['deletedImages[]']];
+    const rawDelImg = req.body.deletedImages || req.body['deletedImages[]'];
+    if (rawDelImg) {
+      try {
+        deletedImagesArray = typeof rawDelImg === 'string' ? JSON.parse(rawDelImg) : rawDelImg;
+        if (!Array.isArray(deletedImagesArray)) deletedImagesArray = [deletedImagesArray];
+      } catch (e) {
+        deletedImagesArray = Array.isArray(rawDelImg) ? rawDelImg : [rawDelImg];
+      }
     }
 
     if (deletedImagesArray.length > 0) {
@@ -122,9 +128,8 @@ exports.updateCar = async (req, res) => {
           const imgRecord = await prisma.carImage.findUnique({ where: { id: imgId } });
           if (imgRecord) {
             if (imgRecord.imageUrl.startsWith('/uploads/')) {
-              // Gunakan .replace(/^\/+/, '') agar path aman dari bug leading slash path.join
               const cleanPath = imgRecord.imageUrl.replace(/^\/+/, '');
-              const filePath = path.join(__dirname, '..', cleanPath);
+              const filePath = path.join(__dirname, '../../public', cleanPath);
               if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
               }
@@ -137,10 +142,16 @@ exports.updateCar = async (req, res) => {
       }
     }
 
-    // 2. Tangkap array ID video yang dihapus secara aman
+    // --- UNIVERSAL PARSER UNTUK HAPUS VIDEO ---
     let deletedVideosArray = [];
-    if (req.body['deletedVideos[]']) {
-      deletedVideosArray = Array.isArray(req.body['deletedVideos[]']) ? req.body['deletedVideos[]'] : [req.body['deletedVideos[]']];
+    const rawDelVid = req.body.deletedVideos || req.body['deletedVideos[]'];
+    if (rawDelVid) {
+      try {
+        deletedVideosArray = typeof rawDelVid === 'string' ? JSON.parse(rawDelVid) : rawDelVid;
+        if (!Array.isArray(deletedVideosArray)) deletedVideosArray = [deletedVideosArray];
+      } catch (e) {
+        deletedVideosArray = Array.isArray(rawDelVid) ? rawDelVid : [rawDelVid];
+      }
     }
 
     if (deletedVideosArray.length > 0) {
@@ -150,7 +161,7 @@ exports.updateCar = async (req, res) => {
           if (vidRecord) {
             if (vidRecord.videoUrl.startsWith('/uploads/')) {
               const cleanPath = vidRecord.videoUrl.replace(/^\/+/, '');
-              const filePath = path.join(__dirname, '..', cleanPath);
+              const filePath = path.join(__dirname, '../../public', cleanPath);
               if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
               }
@@ -163,7 +174,7 @@ exports.updateCar = async (req, res) => {
       }
     }
 
-    // 3. Update Data Utama Mobil, Harga Tujuan, & Syarat Sewa
+    // Update data utama mobil, rute tujuan, & syarat
     const updatedCar = await prisma.car.update({
       where: { id },
       data: {
@@ -186,7 +197,7 @@ exports.updateCar = async (req, res) => {
       include: { images: true, videos: true, destinationPrices: true, terms: true }
     });
 
-    // 4. Handle Tambahan Gambar Baru via Upload File
+    // Tambah foto baru jika di-upload
     if (req.files && req.files['images'] && req.files['images'].length > 0) {
       for (const file of req.files['images']) {
         await prisma.carImage.create({
@@ -198,7 +209,7 @@ exports.updateCar = async (req, res) => {
       }
     }
 
-    // 5. Handle Tambahan Video Baru via Upload File
+    // Tambah video baru jika di-upload
     if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
       for (const file of req.files['videos']) {
         await prisma.carVideo.create({
@@ -210,7 +221,6 @@ exports.updateCar = async (req, res) => {
       }
     }
 
-    // Ambil data terbaru secara lengkap untuk dikembalikan ke frontend
     const finalCar = await prisma.car.findUnique({
       where: { id },
       include: { images: true, videos: true, destinationPrices: true, terms: true }
@@ -235,7 +245,7 @@ exports.deleteCar = async (req, res) => {
       try {
         if (img.imageUrl.startsWith('/uploads/')) {
           const cleanPath = img.imageUrl.replace(/^\/+/, '');
-          const filePath = path.join(__dirname, '..', cleanPath);
+          const filePath = path.join(__dirname, '../../public', cleanPath);
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
           }
@@ -247,7 +257,7 @@ exports.deleteCar = async (req, res) => {
       try {
         if (vid.videoUrl.startsWith('/uploads/')) {
           const cleanPath = vid.videoUrl.replace(/^\/+/, '');
-          const filePath = path.join(__dirname, '..', cleanPath);
+          const filePath = path.join(__dirname, '../../public', cleanPath);
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
           }
