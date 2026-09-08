@@ -4,5 +4,6 @@ const dashboardController = require('../controllers/dashboardController');
 
 router.get('/stats', dashboardController.getDashboardStats);
 router.post('/visit', dashboardController.recordVisitor);
+router.delete('/visit/reset', dashboardController.resetVisitors); // Route untuk tombol restart
 
 module.exports = router;

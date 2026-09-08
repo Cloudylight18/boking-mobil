@@ -1,5 +1,5 @@
 'use client';
-import { Globe, MapPin } from 'lucide-react';
+import { Globe, MapPin, MessageCircle, Heart } from 'lucide-react';
 
 interface FooterProps {
   isDarkMode: boolean;
@@ -24,8 +24,8 @@ export default function Footer({ isDarkMode }: FooterProps) {
               <span className="font-bold text-xl tracking-tight">Hitsbah Transport.</span>
             </div>
             <p className="text-sm max-w-md opacity-70 leading-relaxed">
-  Hitsbah Transport adalah platform penyewaan kendaraan terpercaya yang siap memenuhi segala kebutuhan mobilitas Anda. Didukung oleh armada berkualitas tinggi yang selalu prima, bersih, dan wangi, serta pilihan layanan fleksibel mulai dari Mobil + Supir profesional hingga Carter All-in Bersih yang transparan dan anti ribet. Kami berkomitmen memberikan pengalaman berkendara yang aman, nyaman, dan memuaskan dengan pelayanan prima selama 24 jam penuh.
-</p>
+              Hitsbah Transport adalah platform penyewaan kendaraan terpercaya yang siap memenuhi segala kebutuhan mobilitas Anda. Didukung oleh armada berkualitas tinggi yang selalu prima, bersih, dan wangi, serta pilihan layanan fleksibel mulai dari Mobil + Supir profesional hingga Carter All-in Bersih yang transparan dan anti ribet. Kami berkomitmen memberikan pengalaman berkendara yang aman, nyaman, dan memuaskan dengan pelayanan prima selama 24 jam penuh.
+            </p>
           </div>
 
           {/* Kolom Kanan: Alamat & Sosial Media */}
@@ -76,12 +76,29 @@ export default function Footer({ isDarkMode }: FooterProps) {
 
         </div>
 
-        {/* Bagian Bawah: Copyright & Credit */}
-        <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center text-xs opacity-70 gap-4">
+        {/* Bagian Bawah: Copyright & Credit dengan Tombol WhatsApp Promosi */}
+        <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col lg:flex-row justify-between items-center text-xs opacity-70 gap-4">
           <p>&copy; 2026 Hitsbah Transport, Inc. All rights reserved.</p>
-          <p className="flex items-center gap-1.5 font-medium text-slate-300">
-            Dibuat dengan ❤️ dan ✌️ oleh <span className="text-emerald-400 font-bold">Rafi Darajat</span> 2026
-          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-3 text-center lg:text-right">
+            <p className="flex items-center justify-center gap-1.5 font-medium text-slate-300">
+              Dibuat dengan ❤️ dan ✌️ oleh <span className="text-emerald-400 font-bold">Rafi Darajat</span> 2026
+            </p>
+
+            <span className="hidden sm:inline opacity-40">|</span>
+
+            {/* Tombol Promosi Jasa Pembuatan Web via WhatsApp */}
+            <a 
+              href="https://wa.me/6285724570286?text=Halo%20Rafi%20Darajat,%20saya%20melihat%20website%20Hitsbah%20Transport%20dan%20tertarik%20untuk%20menggunakan%20jasa%20pembuatan%20website/aplikasi." 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold transition-all shadow-md shadow-emerald-900/30 hover:scale-105 cursor-pointer"
+              title="Hubungi Pengembang untuk Pembuatan Website"
+            >
+              <MessageCircle size={14} className="text-white shrink-0" />
+              <span>Butuh Website Seperti Ini? Hubungi Saya</span>
+            </a>
+          </div>
         </div>
       </div>
     </footer>

@@ -6,35 +6,37 @@ import {
   Plus, 
   ChevronRight, 
   ChevronLeft,
-  CheckCircle2, 
-  Wrench, 
-  ShieldAlert, 
-  Users, 
   DollarSign, 
-  Car, 
   BookOpen, 
   Activity, 
   Calendar as CalendarIcon, 
   MapPin,
   User,
   Clock,
-  TrendingUp
+  TrendingUp,
+  RotateCcw,
+  CalendarDays,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
+import toast, { Toaster } from 'react-hot-toast';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
+import { useLoading } from '@/app/context/LoadingContext';
 
 interface DashboardStats {
-  totalCars: number;
-  availableCars: number;
-  maintenanceCars: number;
-  unavailableCars: number;
   totalRevenue: number;
   totalDp: number;
   totalRemaining: number;
+  currentMonthRevenue: number; // Pendapatan bulan ini berdasarkan tanggal pembuatan nota
   totalTransactions: number;
   knowledgeCount: number;
-  visitorCount: number;
+  visitorStats: {
+    total: number;
+    today: number;
+    month: number;
+    year: number;
+  };
 }
 
 interface TransactionItem {
@@ -50,12 +52,12 @@ interface TransactionItem {
 }
 
 export default function DashboardAdmin() {
+  const { showLoader, hideLoader } = useLoading();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
-  // State untuk Navigasi Kalender
   const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
 
@@ -67,6 +69,7 @@ export default function DashboardAdmin() {
   }, []);
 
   const fetchData = async () => {
+    showLoader(); 
     try {
       const [statsRes, txRes] = await Promise.all([
         API.get('/api/dashboard/stats'),
@@ -78,10 +81,27 @@ export default function DashboardAdmin() {
       console.error('Gagal mengambil data dashboard:', error);
     } finally {
       setIsLoading(false);
+      hideLoader(); 
     }
   };
 
-  // Navigasi Bulan Sebelumnya / Berikutnya
+  const handleResetVisitors = async () => {
+    const isConfirm = window.confirm(
+      'AWAS! Apakah Anda yakin ingin mereset/menghapus SEMUA data pengunjung menjadi 0?'
+    );
+    if (!isConfirm) return;
+    
+    showLoader();
+    try {
+      await API.delete('/api/dashboard/visit/reset');
+      toast.success('Angka pengunjung berhasil di-restart ke 0!');
+      fetchData(); 
+    } catch (error) {
+      toast.error('Gagal mereset pengunjung.');
+      hideLoader();
+    }
+  };
+
   const handlePrevMonth = () => {
     setCurrentViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
@@ -90,7 +110,6 @@ export default function DashboardAdmin() {
     setCurrentViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
-  // Kalkulasi Hari dalam Bulan
   const year = currentViewDate.getFullYear();
   const month = currentViewDate.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -108,7 +127,6 @@ export default function DashboardAdmin() {
     year: 'numeric',
   }) : '';
 
-  // Filter transaksi berdasarkan tanggal
   const filteredTransactions = transactions.filter(tx => {
     if (!selectedDateStr) return true;
     return tx.travelDate === selectedDateStr;
@@ -116,14 +134,14 @@ export default function DashboardAdmin() {
 
   return (
     <AdminLayout>
-      {/* Title & Action Header */}
+      <Toaster position="top-right" />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4 border-b border-slate-200/60 dark:border-slate-800 pb-6">
         <div className="w-full md:w-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-xs font-bold uppercase tracking-wider mb-2 border border-indigo-500/20 shadow-sm">
             <Clock size={12} /> {formattedTodayDate || 'Memuat Tanggal...'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Dashboard Sistem</h1>
-          <p className="text-xs sm:text-sm opacity-70 mt-1">Kelola armada mobil, transaksi POS, dan kalender jadwal.</p>
+          <p className="text-xs sm:text-sm opacity-70 mt-1">Kelola transaksi POS, laporan keuangan bulanan, dan kalender jadwal.</p>
         </div>
         <Link 
           href="/admin/transactions/create" 
@@ -137,14 +155,10 @@ export default function DashboardAdmin() {
         <div className="text-center py-28 opacity-60 font-medium tracking-wide text-sm">Memuat data real-time dari database...</div>
       ) : (
         <div className="grid grid-cols-12 gap-4 sm:gap-6">
-          
-          {/* LEFT COLUMN (Spans 8) */}
           <div className="col-span-12 lg:col-span-8 flex flex-col gap-4 sm:gap-6">
             
-            {/* Row 1: Keuangan & Statistik */}
+            {/* --- KEUANGAN & STATISTIK --- */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              
-              {/* Total Pendapatan POS */}
               <div className="md:col-span-1 p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -169,7 +183,6 @@ export default function DashboardAdmin() {
                 </div>
               </div>
 
-              {/* Statistik Transaksi Summary */}
               <div className="md:col-span-2 p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 relative overflow-hidden flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div>
@@ -191,36 +204,31 @@ export default function DashboardAdmin() {
                   </Link>
                 </div>
               </div>
-
             </div>
 
-            {/* Row 2: Status Armada & AI Knowledge */}
+            {/* --- PENDAPATAN BULAN INI & AI KNOWLEDGE --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               
-              {/* Status Armada Mobil */}
-              <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
-                <div className="flex justify-between items-center mb-5 sm:mb-6">
-                  <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
-                    <Car size={16} className="text-indigo-500" /> Status Armada <span className="hidden sm:inline">({stats?.totalCars || 0} Unit)</span>
-                  </h3>
-                  <Link href="/admin/cars" className="text-indigo-600 dark:text-indigo-400 text-[11px] sm:text-xs font-bold hover:underline">Kelola Mobil</Link>
+              {/* Kartu Pendapatan Berdasarkan Tanggal Pembuatan Nota Bulan Ini */}
+              <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
+                      <CalendarDays size={18} className="text-indigo-500" /> Pendapatan Bulan Ini
+                    </h3>
+                    <span className="text-[10px] px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+                      {monthNames[month]} {year}
+                    </span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs opacity-70 leading-relaxed mb-4">
+                    Akumulasi nilai nota yang dibuat admin pada bulan berjalan (meskipun jadwal sewa untuk bulan depan).
+                  </p>
                 </div>
-                <div className="flex flex-col gap-3 text-xs sm:text-sm">
-                  <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0"><CheckCircle2 size={14} className="sm:w-4 sm:h-4"/></div>
-                    <div className="flex-1 font-bold text-[11px] sm:text-xs">AVAILABLE</div>
-                    <span className="font-black text-emerald-600 dark:text-emerald-400">{stats?.availableCars || 0} Unit</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0"><Wrench size={14} className="sm:w-4 sm:h-4"/></div>
-                    <div className="flex-1 font-bold text-[11px] sm:text-xs">MAINTENANCE</div>
-                    <span className="font-black text-orange-600 dark:text-orange-400">{stats?.maintenanceCars || 0} Unit</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 shrink-0"><ShieldAlert size={14} className="sm:w-4 sm:h-4"/></div>
-                    <div className="flex-1 font-bold text-[11px] sm:text-xs">UNAVAILABLE</div>
-                    <span className="font-black text-rose-600 dark:text-rose-400">{stats?.unavailableCars || 0} Unit</span>
-                  </div>
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex justify-between items-center">
+                  <span className="text-xs font-bold opacity-80">Total Input Bulan Ini</span>
+                  <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
+                    {formatRupiah(stats?.currentMonthRevenue || 0)}
+                  </span>
                 </div>
               </div>
 
@@ -243,7 +251,7 @@ export default function DashboardAdmin() {
 
             </div>
 
-            {/* Row 3: Jadwal Keberangkatan Berdasarkan Tanggal Terpilih */}
+            {/* --- JADWAL KEBERANGKATAN --- */}
             <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 sm:mb-6 gap-3">
                 <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
@@ -290,10 +298,9 @@ export default function DashboardAdmin() {
 
           </div>
 
-          {/* RIGHT COLUMN (Spans 4) - Interactive Calendar with Prev/Next */}
           <div className="col-span-12 lg:col-span-4 flex flex-col gap-4 sm:gap-6">
             
-            {/* Widget Kalender Interaktif Lengkap */}
+            {/* --- KALENDER NAVIGASI --- */}
             <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
               <div className="flex justify-between items-center mb-5 sm:mb-6">
                 <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
@@ -321,19 +328,15 @@ export default function DashboardAdmin() {
                 {monthNames[month]} {year}
               </div>
 
-              {/* Grid Hari */}
               <div className="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs font-extrabold opacity-60 mb-2">
                 <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
               </div>
 
-              {/* Grid Tanggal Bulan */}
               <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center text-[11px] sm:text-xs">
-                {/* Spasi untuk hari kosong di awal bulan */}
                 {Array.from({ length: firstDayIndex }).map((_, i) => (
                   <div key={`empty-${i}`} />
                 ))}
 
-                {/* Render Tanggal */}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const dayNum = i + 1;
                   const formattedDay = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
@@ -371,21 +374,48 @@ export default function DashboardAdmin() {
               </div>
             </div>
 
-            {/* Website Visitor Counter */}
+            {/* --- DATA PENGUNJUNG REAL TIME --- */}
             <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
-                  <Users size={16} className="text-indigo-500" /> Pengunjung
+                  <Users size={16} className="text-indigo-500" /> Analitik Toko
                 </h3>
-                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              </div>
-              <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 rounded-2xl p-5 sm:p-6 text-white shadow-lg flex justify-between items-center border border-indigo-500/20">
-                <div>
-                  <p className="text-[10px] sm:text-xs text-indigo-300 font-bold mb-1">Total Kunjungan Toko</p>
-                  <h4 className="text-3xl sm:text-4xl font-black tracking-tight">{stats?.visitorCount || 0}</h4>
+                <div className="flex items-center gap-3">
+                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Sistem Aktif"></span>
+                  <button 
+                    onClick={handleResetVisitors}
+                    title="Manual Reset Kunjungan"
+                    className="p-1.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-colors cursor-pointer"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
                 </div>
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10 shadow-inner">
-                  <Users size={24} className="text-emerald-400 sm:w-[26px] sm:h-[26px]" />
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 rounded-2xl p-5 sm:p-6 text-white shadow-lg border border-indigo-500/20">
+                <div className="flex justify-between items-center mb-5">
+                  <div>
+                    <p className="text-[10px] sm:text-xs text-indigo-300 font-bold mb-1">Semua Pengunjung (Total)</p>
+                    <h4 className="text-3xl sm:text-4xl font-black tracking-tight">{stats?.visitorStats?.total || 0}</h4>
+                  </div>
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10 shadow-inner">
+                    <Users size={24} className="text-emerald-400 sm:w-[26px] sm:h-[26px]" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4 mt-2">
+                  <div className="text-center sm:text-left">
+                    <p className="text-[9px] sm:text-[10px] text-indigo-300 font-semibold mb-0.5 opacity-80">Hari Ini</p>
+                    <p className="text-sm sm:text-base font-extrabold text-emerald-400">+{stats?.visitorStats?.today || 0}</p>
+                  </div>
+                  <div className="text-center sm:text-left border-l border-white/10 pl-2">
+                    <p className="text-[9px] sm:text-[10px] text-indigo-300 font-semibold mb-0.5 opacity-80">Bulan Ini</p>
+                    <p className="text-sm sm:text-base font-bold">{stats?.visitorStats?.month || 0}</p>
+                  </div>
+                  <div className="text-center sm:text-left border-l border-white/10 pl-2">
+                    <p className="text-[9px] sm:text-[10px] text-indigo-300 font-semibold mb-0.5 opacity-80">Tahun Ini</p>
+                    <p className="text-sm sm:text-base font-bold">{stats?.visitorStats?.year || 0}</p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -77,3 +77,13 @@ exports.recordVisitor = async (req, res) => {
     res.status(500).json({ success: false, message: 'Gagal mencatat visitor', error: error.message });
   }
 };
+
+// FUNGSI BARU: Untuk mereset (restart) angka pengunjung menjadi 0
+exports.resetVisitors = async (req, res) => {
+  try {
+    await prisma.visitorLog.deleteMany({});
+    res.status(200).json({ success: true, message: 'Visitor count reset successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Gagal mereset visitor', error: error.message });
+  }
+};

@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { MessageCircle, ArrowLeft, CheckCircle2, Moon, Sun, Navigation, Video } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { formatRupiah } from '@/app/utils/formatRupiah';
-import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { API } from '@/app/utils/api'; 
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 interface DestinationPrice {
   id: string;
@@ -44,6 +45,7 @@ interface CarDetail {
 export default function DetailMobilPage() {
   const params = useParams();
   const id = params?.id;
+  const { showLoader, hideLoader } = useLoading();
 
   const [car, setCar] = useState<CarDetail | null>(null);
   const [selectedImage, setSelectedImage] = useState<string>('');
@@ -59,8 +61,8 @@ export default function DetailMobilPage() {
   useEffect(() => {
     if (!id) return;
     const fetchCarDetail = async () => {
+      showLoader(); // Nyalakan animasi loading logo Hitsbah berputar
       try {
-        // Menggunakan instance API global menggantikan axios mentah ber-localhost
         const response = await API.get('/api/cars');
         const foundCar = response.data.data.find((item: CarDetail) => item.id === id);
         if (foundCar) {
@@ -73,6 +75,7 @@ export default function DetailMobilPage() {
         toast.error('Gagal memuat detail mobil');
       } finally {
         setIsLoading(false);
+        hideLoader(); // Matikan loading
       }
     };
     fetchCarDetail();
@@ -105,7 +108,9 @@ export default function DetailMobilPage() {
 
   const activeImg = selectedImage || (car.images && car.images.length > 0 ? car.images[0].imageUrl : '');
   const mainImgUrl = activeImg 
-    ? (activeImg.startsWith('http') ? activeImg : `${backendUrl}${activeImg}`)
+    ? (activeImg.startsWith('http') 
+        ? activeImg 
+        : `${backendUrl}${activeImg.startsWith('/') ? '' : '/'}${activeImg}`)
     : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80';
 
   return (
@@ -135,7 +140,9 @@ export default function DetailMobilPage() {
             {car.images && car.images.length > 0 && (
               <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto max-h-[450px] shrink-0">
                 {car.images.map((img) => {
-                  const thumbUrl = img.imageUrl.startsWith('http') ? img.imageUrl : `${backendUrl}${img.imageUrl}`;
+                  const thumbUrl = img.imageUrl.startsWith('http') 
+                    ? img.imageUrl 
+                    : `${backendUrl}${img.imageUrl.startsWith('/') ? '' : '/'}${img.imageUrl}`;
                   return (
                     <button 
                       key={img.id}
@@ -168,7 +175,9 @@ export default function DetailMobilPage() {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {car.videos.map((vid) => {
-                  const vidUrl = vid.videoUrl.startsWith('http') ? vid.videoUrl : `${backendUrl}${vid.videoUrl}`;
+                  const vidUrl = vid.videoUrl.startsWith('http') 
+                    ? vid.videoUrl 
+                    : `${backendUrl}${vid.videoUrl.startsWith('/') ? '' : '/'}${vid.videoUrl}`;
                   return (
                     <div key={vid.id} className="h-44 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
                       <video src={vidUrl} controls className="w-full h-full object-cover" />
@@ -183,16 +192,7 @@ export default function DetailMobilPage() {
         {/* Kolom Kanan: Informasi & Daftar Tarif Tujuan */}
         <div className="lg:col-span-5 flex flex-col justify-between">
           <div>
-            <span className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase border ${
-              car.status === 'AVAILABLE' 
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
-                : car.status === 'MAINTENANCE'
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-            }`}>
-              {car.status === 'AVAILABLE' ? '🟢 Tersedia Untuk Disewa' : car.status === 'MAINTENANCE' ? '🔧 Sedang Maintenance' : '🔴 Sedang Disewa'}
-            </span>
-            <h1 className={`text-3xl font-extrabold mt-4 mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{car.name}</h1>
+            <h1 className={`text-3xl font-extrabold mt-2 mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{car.name}</h1>
 
             {/* Daftar Tarif Tujuan & Tombol Booking per Tujuan */}
             <div className={`border p-6 rounded-3xl mb-6 space-y-4 shadow-sm ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
