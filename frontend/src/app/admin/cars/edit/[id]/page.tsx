@@ -341,7 +341,6 @@ export default function AdminCarEditPage() {
               <div className="grid grid-cols-1 gap-4">
                 {videoPreviews.map((src, index) => (
                   <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
-                    {/* Tampilan video diatur penuh (full object-cover) */}
                     <video src={src} controls className="w-full h-full object-cover" />
                     <button 
                       type="button"

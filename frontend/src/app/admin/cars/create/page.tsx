@@ -8,28 +8,25 @@ import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
-import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan hook global loading logo Hitsbah
+import { useLoading } from '@/app/context/LoadingContext';
 
 export default function AdminCarCreatePage() {
   const router = useRouter();
-  const { showLoader, hideLoader } = useLoading(); // Memanggil fungsi trigger loader global berputar
+  const { showLoader, hideLoader } = useLoading();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const [name, setName] = useState('');
   const [condition, setCondition] = useState('');
   const [status, setStatus] = useState<'AVAILABLE' | 'MAINTENANCE' | 'UNAVAILABLE'>('AVAILABLE');
   
-  // State untuk daftar harga berdasarkan tujuan & jenis layanan
   const [destinationPrices, setDestinationPrices] = useState<Array<{ destination: string; serviceType: 'WITH_DRIVER' | 'CARTER_ALL_IN'; price: string }>>([]);
   const [destInput, setDestInput] = useState('');
   const [serviceTypeInput, setServiceTypeInput] = useState<'WITH_DRIVER' | 'CARTER_ALL_IN'>('WITH_DRIVER');
   const [priceInput, setPriceInput] = useState('');
 
-  // State Foto (Maksimal 10 File)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  // State Video (Tampilan Full Resolusi Cover)
   const [selectedVideos, setSelectedVideos] = useState<File[]>([]);
   const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
 
@@ -101,7 +98,7 @@ export default function AdminCarCreatePage() {
       return;
     }
 
-    showLoader(); // Nyalakan animasi loading global berputar dengan logo Hitsbah
+    showLoader();
     try {
       const formData = new FormData();
       formData.append('name', name);
@@ -119,7 +116,6 @@ export default function AdminCarCreatePage() {
         formData.append('videos', video);
       });
 
-      // Menggunakan API instance global dengan Axios Interceptor
       await API.post('/api/cars', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -128,7 +124,7 @@ export default function AdminCarCreatePage() {
       setTimeout(() => router.push('/admin/cars'), 1000);
     } catch (error) {
       toast.error('Gagal menyimpan armada baru.');
-      hideLoader(); // Matikan loader jika terjadi error
+      hideLoader();
     }
   };
 
@@ -304,7 +300,6 @@ export default function AdminCarCreatePage() {
               <div className="grid grid-cols-1 gap-4">
                 {videoPreviews.map((src, index) => (
                   <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
-                    {/* Tampilan video di-set full agar kualitas dan ukurannya bagus melingkupi kotak */}
                     <video src={src} controls className="w-full h-full object-cover" />
                     <button 
                       type="button"

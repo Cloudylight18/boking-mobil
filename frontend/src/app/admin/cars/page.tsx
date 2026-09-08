@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Trash2, Edit3, Eye, Navigation, Car as CarIcon, Search } from 'lucide-react';
+import { Trash2, Edit3, Eye, Navigation, Car as CarIcon, Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { formatRupiah } from '@/app/utils/formatRupiah';
@@ -117,8 +117,11 @@ export default function AdminCarsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredCars.map((car) => {
-            const mainImage = car.images?.[0]?.imageUrl 
-              ? (car.images[0].imageUrl.startsWith('http') ? car.images[0].imageUrl : `${backendUrl}${car.images[0].imageUrl}`)
+            const rawImg = car.images?.[0]?.imageUrl;
+            const mainImage = rawImg 
+              ? (rawImg.startsWith('http') 
+                  ? rawImg 
+                  : `${backendUrl}${rawImg.startsWith('/') ? '' : '/'}${rawImg}`)
               : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80';
 
             return (

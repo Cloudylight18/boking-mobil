@@ -92,9 +92,12 @@ export default function AdminCarDetailPage() {
     );
   }
 
+  // Penanganan URL gambar utama yang aman dari error slash ganda / patah
   const activeImg = selectedImage || (car.images && car.images.length > 0 ? car.images[0].imageUrl : '');
   const mainImgUrl = activeImg 
-    ? (activeImg.startsWith('http') ? activeImg : `${backendUrl}${activeImg}`)
+    ? (activeImg.startsWith('http') 
+        ? activeImg 
+        : `${backendUrl}${activeImg.startsWith('/') ? '' : '/'}${activeImg}`)
     : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80';
 
   return (
@@ -127,7 +130,9 @@ export default function AdminCarDetailPage() {
           {car.images && car.images.length > 1 && (
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
               {car.images.map((img) => {
-                const thumbUrl = img.imageUrl.startsWith('http') ? img.imageUrl : `${backendUrl}${img.imageUrl}`;
+                const thumbUrl = img.imageUrl.startsWith('http') 
+                  ? img.imageUrl 
+                  : `${backendUrl}${img.imageUrl.startsWith('/') ? '' : '/'}${img.imageUrl}`;
                 const isSelected = selectedImage === img.imageUrl;
                 return (
                   <button 
@@ -152,7 +157,9 @@ export default function AdminCarDetailPage() {
               </h3>
               <div className="grid grid-cols-1 gap-4">
                 {car.videos.map((vid) => {
-                  const vidUrl = vid.videoUrl.startsWith('http') ? vid.videoUrl : `${backendUrl}${vid.videoUrl}`;
+                  const vidUrl = vid.videoUrl.startsWith('http') 
+                    ? vid.videoUrl 
+                    : `${backendUrl}${vid.videoUrl.startsWith('/') ? '' : '/'}${vid.videoUrl}`;
                   return (
                     <div key={vid.id} className="h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-xl">
                       {/* Tampilan video di-set full object-cover agar HD dan proporsional */}
