@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
@@ -44,7 +44,11 @@ export default function AdminTransactionEditPage() {
   const [isCustomDest, setIsCustomDest] = useState(false);
   const [customDestName, setCustomDestName] = useState('');
   const [customPricePerDay, setCustomPricePerDay] = useState<string>('');
-  const [customServiceType, setCustomServiceType] = useState('WITH_DRIVER');
+  
+  // State untuk Tipe Layanan
+  const [customServiceTypeSelect, setCustomServiceTypeSelect] = useState('WITH_DRIVER');
+  const [isCustomService, setIsCustomService] = useState(false);
+  const [customServiceName, setCustomServiceName] = useState('');
   
   const [travelDate, setTravelDate] = useState('');
   const [durationDays, setDurationDays] = useState<string>('1'); 
@@ -79,6 +83,22 @@ export default function AdminTransactionEditPage() {
           setDpAmount(found.dpAmount != null ? String(found.dpAmount) : '');
           setDiscountInput(String(found.discountAmount || 0)); 
 
+          let isServiceCustom = false;
+
+          // Set Tipe Layanan Awal
+          if (found.serviceType) {
+            if (found.serviceType.toLowerCase().includes('supir') || found.serviceType === 'WITH_DRIVER') {
+              setCustomServiceTypeSelect('WITH_DRIVER');
+            } else if (found.serviceType.toLowerCase().includes('all-in') || found.serviceType === 'CARTER_ALL_IN') {
+              setCustomServiceTypeSelect('CARTER_ALL_IN');
+            } else {
+              // Jika tipe layanan tidak standar, jadikan custom
+              setIsCustomService(true);
+              setCustomServiceName(found.serviceType);
+              isServiceCustom = true;
+            }
+          }
+
           // Cek apakah mobil ada di list atau custom
           const matchedCar = carList.find((c: Car) => c.name.toLowerCase() === found.carName.toLowerCase());
           if (matchedCar) {
@@ -90,12 +110,14 @@ export default function AdminTransactionEditPage() {
             if (matchedRoute) {
               setSelectedDestPriceId(matchedRoute.id);
               setIsCustomDest(false);
+              if (!isServiceCustom) {
+                setCustomServiceTypeSelect(matchedRoute.serviceType);
+              }
             } else {
               // Jika rute manual
               setIsCustomDest(true);
               setSelectedDestPriceId('LAINNYA');
               setCustomDestName(found.destination);
-              // Hitung estimasi harga satuan dari total dibagi durasi
               const unitEst = found.durationDays ? Math.round(found.basePrice / found.durationDays) : found.basePrice;
               setCustomPricePerDay(String(unitEst || ''));
             }
@@ -112,9 +134,6 @@ export default function AdminTransactionEditPage() {
             setCustomPricePerDay(String(unitEst || ''));
           }
 
-          if (found.serviceType) {
-            setCustomServiceType(found.serviceType.includes('Supir') ? 'WITH_DRIVER' : 'CARTER_ALL_IN');
-          }
         } else {
           toast.error('Nota transaksi tidak ditemukan.');
         }
@@ -154,6 +173,24 @@ export default function AdminTransactionEditPage() {
     } else {
       setIsCustomDest(false);
       setSelectedDestPriceId(val);
+      // Sinkronkan tipe layanan otomatis jika dari database
+      const foundRoute = selectedCar?.destinationPrices.find(dp => dp.id === val);
+      if (foundRoute) {
+        setIsCustomService(false);
+        setCustomServiceTypeSelect(foundRoute.serviceType);
+      }
+    }
+  };
+
+  // Handle Perubahan Dropdown Tipe Layanan
+  const handleServiceSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    if (val === 'LAINNYA') {
+      setIsCustomService(true);
+      setCustomServiceName('');
+    } else {
+      setIsCustomService(false);
+      setCustomServiceTypeSelect(val);
     }
   };
 
@@ -231,16 +268,14 @@ export default function AdminTransactionEditPage() {
       finalCarName = selectedCar.name;
     }
 
-    // Validasi Rute & Harga
+    // Validasi Rute
     let finalDestName = '';
-    let finalServiceType = '';
     if (isCustomDest) {
       if (!customDestName.trim() || !customPricePerDay) {
         toast.error('Nama rute manual dan harga per hari harus diisi.');
         return;
       }
       finalDestName = customDestName;
-      finalServiceType = customServiceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih';
     } else {
       const selectedDestObj = selectedCar?.destinationPrices.find(dp => dp.id === selectedDestPriceId);
       if (!selectedDestObj) {
@@ -248,7 +283,23 @@ export default function AdminTransactionEditPage() {
         return;
       }
       finalDestName = selectedDestObj.destination;
-      finalServiceType = selectedDestObj.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih';
+    }
+
+    // Validasi Tipe Layanan
+    let finalServiceType = '';
+    if (isCustomService) {
+      if (!customServiceName.trim()) {
+        toast.error('Nama tipe layanan manual (Lainnya) harus diisi.');
+        return;
+      }
+      finalServiceType = customServiceName;
+    } else {
+      if (isCustomDest) {
+        finalServiceType = customServiceTypeSelect === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih';
+      } else {
+        const selectedDestObj = selectedCar?.destinationPrices.find(dp => dp.id === selectedDestPriceId);
+        finalServiceType = selectedDestObj?.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih';
+      }
     }
 
     const daysNum = durationDays === '' ? 1 : Number(durationDays);
@@ -404,36 +455,57 @@ export default function AdminTransactionEditPage() {
                       className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase mb-1.5 opacity-75">Tipe Layanan</label>
-                      <select 
-                        value={customServiceType}
-                        onChange={(e) => setCustomServiceType(e.target.value)}
-                        className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
-                      >
-                        <option value="WITH_DRIVER">Mobil + Supir</option>
-                        <option value="CARTER_ALL_IN">Carter All-in</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase mb-1.5 opacity-75 flex items-center gap-1"><DollarSign size={10}/> Tarif per Hari</label>
-                      <input 
-                        type="text" 
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        required={isCustomDest}
-                        value={customPricePerDay}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setCustomPricePerDay(e.target.value.replace(/\D/g, ''))}
-                        placeholder="Contoh: 500000" 
-                        className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase mb-1.5 opacity-75 flex items-center gap-1"><DollarSign size={10}/> Tarif per Hari (Rp)</label>
+                    <input 
+                      type="text" 
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      required={isCustomDest}
+                      value={customPricePerDay}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setCustomPricePerDay(e.target.value.replace(/\D/g, ''))}
+                      placeholder="Contoh: 500000" 
+                      className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                    />
                   </div>
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Pemilihan Tipe Layanan */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <div>
+              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+                <Briefcase size={14} className="text-indigo-500" /> Tipe Layanan Transaksi
+              </label>
+              <select 
+                value={isCustomService ? 'LAINNYA' : customServiceTypeSelect}
+                onChange={handleServiceSelectChange}
+                className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+              >
+                <option value="WITH_DRIVER">Mobil + Supir</option>
+                <option value="CARTER_ALL_IN">Carter All-in Bersih</option>
+                <option value="LAINNYA" className="font-bold text-indigo-600 dark:text-indigo-400">✨ Lainnya (Input Manual Tipe Layanan)</option>
+              </select>
+            </div>
+
+            {isCustomService && (
+              <div className="animate-fadeIn p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20">
+                <label className="block text-[11px] font-extrabold uppercase mb-2 opacity-75 text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                  <Edit3 size={12} /> Masukkan Nama Tipe Layanan Manual
+                </label>
+                <input 
+                  type="text" 
+                  required={isCustomService}
+                  value={customServiceName}
+                  onChange={(e) => setCustomServiceName(e.target.value)}
+                  placeholder="Contoh: Paket VIP + Driver + BBM" 
+                  className={`w-full p-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                />
+              </div>
+            )}
           </div>
 
           <div className="p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">

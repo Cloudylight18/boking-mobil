@@ -1,229 +1,399 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
+import { 
+  Plus, 
+  ChevronRight, 
+  ChevronLeft,
+  CheckCircle2, 
+  Wrench, 
+  ShieldAlert, 
+  Users, 
+  DollarSign, 
+  Car, 
+  BookOpen, 
+  Activity, 
+  Calendar as CalendarIcon, 
+  MapPin,
+  User,
+  Clock,
+  TrendingUp
+} from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Sun, Moon, Settings, LogOut, ChevronDown, LayoutDashboard, Car, FileText, BookOpen, Menu, X } from 'lucide-react';
-import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { formatRupiah } from '@/app/utils/formatRupiah';
+import { API } from '@/app/utils/api'; 
 
-interface NavbarProps {
-  isDarkMode: boolean;
-  toggleDarkMode: () => void;
+interface DashboardStats {
+  totalCars: number;
+  availableCars: number;
+  maintenanceCars: number;
+  unavailableCars: number;
+  totalRevenue: number;
+  totalDp: number;
+  totalRemaining: number;
+  totalTransactions: number;
+  knowledgeCount: number;
+  visitorCount: number;
 }
 
-export default function AdminNavbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
-
-  const [adminName, setAdminName] = useState('Super Admin');
-  const [adminImage, setAdminImage] = useState<string | null>(null);
-
-  // Mendapatkan Base URL dari instance API atau environment variable untuk penanganan gambar profil
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
-
-  const isActive = (path: string) => pathname === path;
-
-  // Ambil data profil admin secara real-time untuk navbar menggunakan instance API
-  useEffect(() => {
-    const fetchAdminProfile = async () => {
-      try {
-        const res = await API.get('/api/auth/profile');
-        if (res.data.status === 'success' && res.data.data) {
-          const data = res.data.data;
-          if (data.username) setAdminName(data.username);
-          if (data.image) {
-            const imgUrl = data.image.startsWith('http') 
-              ? data.image 
-              : `${backendUrl}${data.image}`;
-            setAdminImage(imgUrl);
-          }
-        }
-      } catch (error) {
-        console.error('Gagal memuat profil navbar:', error);
-      }
-    };
-    fetchAdminProfile();
-  }, [backendUrl]);
-
-  // Tutup dropdown jika mengklik di luar area
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleLogout = () => {
-    if (confirm('Apakah Anda yakin ingin keluar dari sesi admin?')) {
-      localStorage.removeItem('token'); 
-      router.push('/admin/login'); 
-    }
-  };
-
-  return (
-    <nav className="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
-        
-        {/* Left: Hamburger Button (Mobile) & Brand Logo */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          
-          {/* Tombol Hamburger untuk Tampilan HP */}
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl bg-indigo-700/60 hover:bg-indigo-700 text-white transition flex items-center justify-center cursor-pointer"
-            title="Menu Navigasi"
-          >
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-
-          <Link href="/admin/dashboard" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-md p-1 shrink-0">
-              <img 
-                src="/img/logo-hitsbah.png" 
-                alt="Logo Admin" 
-                className="w-full h-full object-contain"
-              />
-            </div>
-            {/* Teks Brand: Admin di atas, Hitsbah Transport di bawah dengan huruf lebih kecil */}
-            <div className="flex flex-col">
-              <span className="font-bold tracking-tight text-xs sm:text-sm leading-tight">Admin</span>
-              <span className="text-[10px] sm:text-xs text-indigo-200 font-medium tracking-tight leading-tight">Hitsbah Transport</span>
-            </div>
-          </Link>
-
-          {/* Menu Navigasi Desktop */}
-          <div className="hidden md:flex items-center gap-1.5 ml-2">
-            <Link 
-              href="/admin/dashboard" 
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${isActive('/admin/dashboard') ? 'bg-indigo-700 text-white shadow-inner' : 'text-indigo-100 hover:bg-indigo-500/50'}`}
-            >
-              <LayoutDashboard size={16} />
-              <span>Dashboard</span>
-            </Link>
-            <Link 
-              href="/admin/cars" 
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${isActive('/admin/cars') ? 'bg-indigo-700 text-white shadow-inner' : 'text-indigo-100 hover:bg-indigo-500/50'}`}
-            >
-              <Car size={16} />
-              <span>Armada</span>
-            </Link>
-            <Link 
-              href="/admin/transactions" 
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${isActive('/admin/transactions') ? 'bg-indigo-700 text-white shadow-inner' : 'text-indigo-100 hover:bg-indigo-500/50'}`}
-            >
-              <FileText size={16} />
-              <span>POS</span>
-            </Link>
-            <Link 
-              href="/admin/knowledge" 
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1.5 ${isActive('/admin/knowledge') ? 'bg-indigo-700 text-white shadow-inner' : 'text-indigo-100 hover:bg-indigo-500/50'}`}
-            >
-              <BookOpen size={16} />
-              <span>AI SOP</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Right: Theme Toggle & Profile Dropdown */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button 
-            onClick={toggleDarkMode} 
-            className="p-2 bg-indigo-700/60 hover:bg-indigo-700 text-indigo-100 rounded-xl transition flex items-center justify-center border border-indigo-500/40 cursor-pointer"
-            title="Ubah Mode Terang / Gelap"
-          >
-            {isDarkMode ? <Sun size={16} className="text-amber-300" /> : <Moon size={16} />}
-          </button>
-
-          {/* Profile Dropdown Menu */}
-          <div className="relative" ref={dropdownRef}>
-            <button 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 bg-indigo-700/50 hover:bg-indigo-700 pl-1.5 pr-2.5 py-1 rounded-full border border-indigo-500/40 cursor-pointer transition"
-            >
-              {/* Dynamic Avatar Image or Initials Fallback */}
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-emerald-400 text-slate-950 font-bold flex items-center justify-center text-[10px] sm:text-xs border border-white/30 shadow-sm shrink-0">
-                {adminImage ? (
-                  <img src={adminImage} alt="Admin Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{adminName.substring(0, 2).toUpperCase()}</span>
-                )}
-              </div>
-              <span className="text-xs font-semibold hidden sm:inline max-w-[90px] truncate">{adminName}</span>
-              <ChevronDown size={14} className="opacity-70 shrink-0" />
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 py-2 z-50 animate-fadeIn">
-                <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
-                  <p className="text-xs font-bold truncate">{adminName}</p>
-                  <p className="text-[10px] opacity-60">Administrator</p>
-                </div>
-                <Link 
-                  href="/admin/settings"
-                  onClick={() => setIsDropdownOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                >
-                  <Settings size={15} className="text-indigo-500" /> Pengaturan Akun
-                </Link>
-                <button 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition text-left cursor-pointer"
-                >
-                  <LogOut size={15} /> Keluar (Logout)
-                </button>
-              </div>
-            )}
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* Mobile Dropdown Menu Drawer (Muncul saat tombol hamburger diklik di HP) */}
-      {isMobileMenuOpen && (
-        <div ref={mobileMenuRef} className="md:hidden bg-indigo-700 border-t border-indigo-500/40 px-4 py-3 space-y-2 shadow-lg animate-fadeIn">
-          <Link 
-            href="/admin/dashboard" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/admin/dashboard') ? 'bg-indigo-800 text-white shadow-inner' : 'text-indigo-100 hover:bg-indigo-600'}`}
-          >
-            <LayoutDashboard size={18} />
-            <span>Dashboard</span>
-          </Link>
-          <Link 
-            href="/admin/cars" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/admin/cars') ? 'bg-indigo-800 text-white shadow-inner' : 'text-indigo-100 hover:bg-indigo-600'}`}
-          >
-            <Car size={18} />
-            <span>Armada Mobil</span>
-          </Link>
-          <Link 
-            href="/admin/transactions" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/admin/transactions') ? 'bg-indigo-800 text-white shadow-inner' : 'text-indigo-100 hover:bg-indigo-600'}`}
-          >
-            <FileText size={18} />
-            <span>Transaksi POS</span>
-          </Link>
-          <Link 
-            href="/admin/knowledge" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/admin/knowledge') ? 'bg-indigo-800 text-white shadow-inner' : 'text-indigo-100 hover:bg-indigo-600'}`}
-          >
-            <BookOpen size={18} />
-            <span>AI Knowledge Base</span>
-          </Link>
-        </div>
-      )}
-    </nav>
-  );
+interface TransactionItem {
+  id: string;
+  customerName: string;
+  carName: string;
+  destination: string;
+  travelDate: string; 
+  durationDays?: number;
+  dpAmount: number;
+  remainingPay: number;
+  createdAt: string;
 }
 
+export default function DashboardAdmin() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // State untuk Navigasi Kalender
+  const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
+  const [selectedDateStr, setSelectedDateStr] = useState<string>('');
+
+  useEffect(() => {
+    setIsMounted(true);
+    const todayStr = new Date().toISOString().split('T')[0];
+    setSelectedDateStr(todayStr);
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [statsRes, txRes] = await Promise.all([
+        API.get('/api/dashboard/stats'),
+        API.get('/api/transactions')
+      ]);
+      setStats(statsRes.data.data);
+      setTransactions(txRes.data.data || []);
+    } catch (error) {
+      console.error('Gagal mengambil data dashboard:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Navigasi Bulan Sebelumnya / Berikutnya
+  const handlePrevMonth = () => {
+    setCurrentViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  // Kalkulasi Hari dalam Bulan
+  const year = currentViewDate.getFullYear();
+  const month = currentViewDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayIndex = new Date(year, month, 1).getDay(); 
+
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+
+  const formattedTodayDate = isMounted ? new Date().toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }) : '';
+
+  // Filter transaksi berdasarkan tanggal
+  const filteredTransactions = transactions.filter(tx => {
+    if (!selectedDateStr) return true;
+    return tx.travelDate === selectedDateStr;
+  });
+
+  return (
+    <AdminLayout>
+      {/* Title & Action Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4 border-b border-slate-200/60 dark:border-slate-800 pb-6">
+        <div className="w-full md:w-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-xs font-bold uppercase tracking-wider mb-2 border border-indigo-500/20 shadow-sm">
+            <Clock size={12} /> {formattedTodayDate || 'Memuat Tanggal...'}
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Dashboard Sistem</h1>
+          <p className="text-xs sm:text-sm opacity-70 mt-1">Kelola armada mobil, transaksi POS, dan kalender jadwal.</p>
+        </div>
+        <Link 
+          href="/admin/transactions/create" 
+          className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/25 hover:-translate-y-0.5 cursor-pointer"
+        >
+          <Plus size={18} /> Buat Transaksi POS
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-28 opacity-60 font-medium tracking-wide text-sm">Memuat data real-time dari database...</div>
+      ) : (
+        <div className="grid grid-cols-12 gap-4 sm:gap-6">
+          
+          {/* LEFT COLUMN (Spans 8) */}
+          <div className="col-span-12 lg:col-span-8 flex flex-col gap-4 sm:gap-6">
+            
+            {/* Row 1: Keuangan & Statistik */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              
+              {/* Total Pendapatan POS */}
+              <div className="md:col-span-1 p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[11px] sm:text-xs uppercase tracking-wider opacity-60 font-extrabold">Total Pendapatan</p>
+                    <div className="p-2 sm:p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                      <DollarSign size={16} className="sm:w-[18px] sm:h-[18px]" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <h2 className="text-xl sm:text-2xl font-black tracking-tight">{formatRupiah(stats?.totalRevenue || 0)}</h2>
+                  </div>
+                </div>
+                <div className="flex justify-between text-xs pt-4 border-t border-slate-100 dark:border-slate-800 gap-2">
+                  <div>
+                    <p className="opacity-50 mb-0.5 font-medium text-[10px] sm:text-xs">Total DP</p>
+                    <p className="font-bold text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400">{formatRupiah(stats?.totalDp || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="opacity-50 mb-0.5 font-medium text-[10px] sm:text-xs">Sisa Piutang</p>
+                    <p className="font-bold text-[11px] sm:text-xs text-rose-600 dark:text-rose-400">{formatRupiah(stats?.totalRemaining || 0)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Statistik Transaksi Summary */}
+              <div className="md:col-span-2 p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 relative overflow-hidden flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider mb-2 border border-indigo-500/20">
+                      <Activity size={12} /> Live Database Sync
+                    </div>
+                    <h3 className="text-3xl sm:text-4xl font-black tracking-tight mt-1">
+                      {stats?.totalTransactions || 0} <span className="text-base sm:text-lg font-bold opacity-70">Nota</span>
+                    </h3>
+                  </div>
+                  <div className="p-2.5 sm:p-3 rounded-2xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                    <TrendingUp size={20} className="sm:w-[22px] sm:h-[22px]" />
+                  </div>
+                </div>
+                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[11px] sm:text-xs">
+                  <span className="opacity-70">Model Tabel: <code className="text-indigo-500 font-mono font-bold">Transaction</code></span>
+                  <Link href="/admin/transactions" className="font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                    Lihat Semua <span className="hidden sm:inline">Nota</span> <ChevronRight size={14}/>
+                  </Link>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Row 2: Status Armada & AI Knowledge */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              
+              {/* Status Armada Mobil */}
+              <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
+                <div className="flex justify-between items-center mb-5 sm:mb-6">
+                  <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
+                    <Car size={16} className="text-indigo-500" /> Status Armada <span className="hidden sm:inline">({stats?.totalCars || 0} Unit)</span>
+                  </h3>
+                  <Link href="/admin/cars" className="text-indigo-600 dark:text-indigo-400 text-[11px] sm:text-xs font-bold hover:underline">Kelola Mobil</Link>
+                </div>
+                <div className="flex flex-col gap-3 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0"><CheckCircle2 size={14} className="sm:w-4 sm:h-4"/></div>
+                    <div className="flex-1 font-bold text-[11px] sm:text-xs">AVAILABLE</div>
+                    <span className="font-black text-emerald-600 dark:text-emerald-400">{stats?.availableCars || 0} Unit</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0"><Wrench size={14} className="sm:w-4 sm:h-4"/></div>
+                    <div className="flex-1 font-bold text-[11px] sm:text-xs">MAINTENANCE</div>
+                    <span className="font-black text-orange-600 dark:text-orange-400">{stats?.maintenanceCars || 0} Unit</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 shrink-0"><ShieldAlert size={14} className="sm:w-4 sm:h-4"/></div>
+                    <div className="flex-1 font-bold text-[11px] sm:text-xs">UNAVAILABLE</div>
+                    <span className="font-black text-rose-600 dark:text-rose-400">{stats?.unavailableCars || 0} Unit</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Knowledge Base */}
+              <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-3 sm:mb-4">
+                    <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
+                      <BookOpen size={16} className="text-indigo-500" /> Knowledge AI
+                    </h3>
+                    <Link href="/admin/knowledge" className="text-indigo-600 dark:text-indigo-400 text-[11px] sm:text-xs font-bold hover:underline">Atur Knowledge</Link>
+                  </div>
+                  <p className="text-[11px] sm:text-xs opacity-70 leading-relaxed">Manajemen SOP dan Berita Acara agar asisten AI dapat menjawab pelanggan dengan akurat.</p>
+                </div>
+                <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 to-violet-500/10 border border-indigo-500/20 flex justify-between items-center mt-4">
+                  <span className="text-[11px] sm:text-xs font-bold">Total SOP Aktif</span>
+                  <span className="bg-indigo-600 text-white text-[11px] sm:text-xs px-3 py-1 sm:py-1.5 rounded-xl font-bold shadow-sm">{stats?.knowledgeCount || 0} Topik</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Row 3: Jadwal Keberangkatan Berdasarkan Tanggal Terpilih */}
+            <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 sm:mb-6 gap-3">
+                <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
+                  <CalendarIcon size={16} className="text-indigo-500" /> 
+                  <span className="truncate">Jadwal Keberangkatan {selectedDateStr && `(${selectedDateStr})`}</span>
+                </h3>
+                {selectedDateStr && (
+                  <button 
+                    onClick={() => setSelectedDateStr('')}
+                    className="text-[10px] sm:text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline bg-indigo-500/10 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl border border-indigo-500/20 cursor-pointer"
+                  >
+                    Tampilkan Semua
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {filteredTransactions.length > 0 ? (
+                  filteredTransactions.map((tx) => (
+                    <div key={tx.id} className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition hover:border-indigo-500/40">
+                      <div className="space-y-1.5 sm:space-y-1 w-full sm:w-auto">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-bold font-mono border border-indigo-500/20">
+                            📅 {tx.travelDate}
+                          </span>
+                          <span className="text-[10px] sm:text-xs font-semibold opacity-70">({tx.durationDays || 1} Hari)</span>
+                        </div>
+                        <p className="font-bold text-xs sm:text-sm flex flex-wrap items-center gap-1.5 mt-1">
+                          <User size={13} className="text-emerald-500" /> {tx.customerName} <span className="hidden sm:inline">—</span> <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{tx.carName}</span>
+                        </p>
+                      </div>
+                      <div className="w-full sm:w-auto text-left sm:text-right flex items-center sm:justify-end gap-2 mt-1 sm:mt-0">
+                        <span className="w-full sm:w-auto text-[11px] sm:text-xs font-bold flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-2 rounded-xl sm:rounded-2xl border border-emerald-500/20">
+                          <MapPin size={12} className="shrink-0" /> <span className="truncate">Tujuan: {tx.destination}</span>
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[11px] sm:text-xs opacity-50 text-center py-6 sm:py-8">Tidak ada jadwal keberangkatan pada tanggal {selectedDateStr || 'ini'}.</p>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN (Spans 4) - Interactive Calendar with Prev/Next */}
+          <div className="col-span-12 lg:col-span-4 flex flex-col gap-4 sm:gap-6">
+            
+            {/* Widget Kalender Interaktif Lengkap */}
+            <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
+              <div className="flex justify-between items-center mb-5 sm:mb-6">
+                <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
+                  <CalendarIcon size={16} className="text-indigo-500" /> Kalender
+                </h3>
+                <div className="flex items-center gap-1.5">
+                  <button 
+                    onClick={handlePrevMonth}
+                    className="p-1.5 sm:p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-500/10 transition cursor-pointer"
+                    title="Bulan Sebelumnya"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button 
+                    onClick={handleNextMonth}
+                    className="p-1.5 sm:p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-500/10 transition cursor-pointer"
+                    title="Bulan Berikutnya"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-center mb-4 sm:mb-5 font-black text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 tracking-wide">
+                {monthNames[month]} {year}
+              </div>
+
+              {/* Grid Hari */}
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs font-extrabold opacity-60 mb-2">
+                <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+              </div>
+
+              {/* Grid Tanggal Bulan */}
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center text-[11px] sm:text-xs">
+                {/* Spasi untuk hari kosong di awal bulan */}
+                {Array.from({ length: firstDayIndex }).map((_, i) => (
+                  <div key={`empty-${i}`} />
+                ))}
+
+                {/* Render Tanggal */}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                  const dayNum = i + 1;
+                  const formattedDay = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
+                  const formattedMonth = (month + 1) < 10 ? `0${month + 1}` : `${month + 1}`;
+                  const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
+
+                  const hasBooking = transactions.some(tx => tx.travelDate === dateStr);
+                  const isSelected = selectedDateStr === dateStr;
+                  const isToday = new Date().toISOString().split('T')[0] === dateStr;
+
+                  return (
+                    <button
+                      key={dateStr}
+                      onClick={() => setSelectedDateStr(dateStr)}
+                      className={`h-9 sm:h-10 rounded-xl sm:rounded-2xl font-bold flex flex-col items-center justify-center transition-all relative cursor-pointer ${
+                        isSelected 
+                          ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/30 scale-105' 
+                          : isToday
+                          ? 'border-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-500/5'
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>{dayNum}</span>
+                      {hasBooking && (
+                        <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full absolute bottom-1 sm:bottom-1.5 ${isSelected ? 'bg-white' : 'bg-emerald-500'}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-100 dark:border-slate-800 text-[10px] sm:text-xs flex items-center justify-between opacity-70 font-medium">
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 inline-block" /> Ada Jadwal</span>
+                <span>Klik tanggal untuk filter</span>
+              </div>
+            </div>
+
+            {/* Website Visitor Counter */}
+            <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
+                  <Users size={16} className="text-indigo-500" /> Pengunjung
+                </h3>
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              </div>
+              <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 rounded-2xl p-5 sm:p-6 text-white shadow-lg flex justify-between items-center border border-indigo-500/20">
+                <div>
+                  <p className="text-[10px] sm:text-xs text-indigo-300 font-bold mb-1">Total Kunjungan Toko</p>
+                  <h4 className="text-3xl sm:text-4xl font-black tracking-tight">{stats?.visitorCount || 0}</h4>
+                </div>
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10 shadow-inner">
+                  <Users size={24} className="text-emerald-400 sm:w-[26px] sm:h-[26px]" />
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+    </AdminLayout>
+  );
+}
