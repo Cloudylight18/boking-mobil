@@ -18,14 +18,17 @@ exports.createTransaction = async (req, res) => {
   try {
     const { 
       customerName, 
+      customerPhone, // Ditambahkan
       address, 
       carName, 
       destination, 
+      driverName,    // Ditambahkan
+      driverPhone,   // Ditambahkan
       travelDate, 
       durationDays, 
       dateDetails, 
       shiftTime, 
-      discountAmount, // Ditambahkan
+      discountAmount, 
       dpAmount, 
       remainingPay, 
       serviceType 
@@ -34,14 +37,17 @@ exports.createTransaction = async (req, res) => {
     const newTransaction = await prisma.transaction.create({
       data: {
         customerName,
+        customerPhone: customerPhone || null, // Ditambahkan
         address,
         carName,
         destination,
+        driverName: driverName || null,       // Ditambahkan
+        driverPhone: driverPhone || null,     // Ditambahkan
         travelDate,
         durationDays: parseInt(durationDays) || 1,
         dateDetails: dateDetails || null,
         shiftTime,
-        discountAmount: parseInt(discountAmount) || 0, // Ditambahkan
+        discountAmount: parseInt(discountAmount) || 0,
         dpAmount: parseInt(dpAmount) || 0,
         remainingPay: parseInt(remainingPay) || 0,
         serviceType
@@ -67,14 +73,17 @@ exports.updateTransaction = async (req, res) => {
     const { id } = req.params;
     const { 
       customerName, 
+      customerPhone, // Ditambahkan
       address, 
       carName, 
       destination, 
+      driverName,    // Ditambahkan
+      driverPhone,   // Ditambahkan
       travelDate, 
       durationDays, 
       dateDetails, 
       shiftTime, 
-      discountAmount, // Ditambahkan
+      discountAmount, 
       dpAmount, 
       remainingPay, 
       serviceType 
@@ -84,14 +93,17 @@ exports.updateTransaction = async (req, res) => {
       where: { id },
       data: {
         customerName,
+        customerPhone: customerPhone || null, // Ditambahkan
         address,
         carName,
         destination,
+        driverName: driverName || null,       // Ditambahkan
+        driverPhone: driverPhone || null,     // Ditambahkan
         travelDate,
         durationDays: parseInt(durationDays) || 1,
         dateDetails: dateDetails || null,
         shiftTime,
-        discountAmount: parseInt(discountAmount) || 0, // Ditambahkan
+        discountAmount: parseInt(discountAmount) || 0,
         dpAmount: parseInt(dpAmount) || 0,
         remainingPay: parseInt(remainingPay) || 0,
         serviceType

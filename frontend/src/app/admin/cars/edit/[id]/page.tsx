@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Upload, X, Plus, Video, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Plus, Video, Image as ImageIcon, Trash2, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
-import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
+import { useLoading } from '@/app/context/LoadingContext';
 
 export default function AdminCarEditPage() {
   const params = useParams();
@@ -25,6 +25,9 @@ export default function AdminCarEditPage() {
   const [destInput, setDestInput] = useState('');
   const [serviceTypeInput, setServiceTypeInput] = useState<'WITH_DRIVER' | 'CARTER_ALL_IN'>('WITH_DRIVER');
   const [priceInput, setPriceInput] = useState('');
+  
+  // State baru untuk melacak rute mana yang sedang di-edit
+  const [editDestIndex, setEditDestIndex] = useState<number | null>(null);
 
   // State File Lama dari Database
   const [existingImages, setExistingImages] = useState<Array<{ id: string; imageUrl: string }>>([]);
@@ -32,7 +35,7 @@ export default function AdminCarEditPage() {
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
   const [deletedVideoIds, setDeletedVideoIds] = useState<string[]>([]);
 
-  // State Foto Baru (Maksimal total file)
+  // State Foto Baru
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
@@ -44,7 +47,6 @@ export default function AdminCarEditPage() {
   const [terms, setTerms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mendapatkan Base URL backend untuk file lama
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
 
   useEffect(() => {
@@ -85,13 +87,11 @@ export default function AdminCarEditPage() {
     fetchCar();
   }, [id]);
 
-  // Handler Hapus Foto Lama
   const handleRemoveExistingImage = (imageId: string) => {
     setExistingImages(existingImages.filter(img => img.id !== imageId));
     setDeletedImageIds([...deletedImageIds, imageId]);
   };
 
-  // Handler Hapus Video Lama
   const handleRemoveExistingVideo = (videoId: string) => {
     setExistingVideos(existingVideos.filter(vid => vid.id !== videoId));
     setDeletedVideoIds([...deletedVideoIds, videoId]);
@@ -132,17 +132,54 @@ export default function AdminCarEditPage() {
     setVideoPreviews(videoPreviews.filter((_, i) => i !== index));
   };
 
-  const handleAddDestinationPrice = () => {
+  // --- LOGIC BARU UNTUK EDIT/TAMBAH RUTE TUJUAN ---
+  const handleAddOrUpdateDestinationPrice = () => {
     if (!destInput.trim() || !priceInput) {
       toast.error('Destinasi dan harga harus diisi!');
       return;
     }
-    setDestinationPrices([...destinationPrices, { destination: destInput.trim(), serviceType: serviceTypeInput, price: priceInput }]);
+
+    if (editDestIndex !== null) {
+      // Mode Update/Edit
+      const updatedPrices = [...destinationPrices];
+      updatedPrices[editDestIndex] = { 
+        destination: destInput.trim(), 
+        serviceType: serviceTypeInput, 
+        price: priceInput 
+      };
+      setDestinationPrices(updatedPrices);
+      setEditDestIndex(null); // Reset mode edit
+      toast.success('Rute dan tarif berhasil diperbarui di daftar!');
+    } else {
+      // Mode Tambah Baru
+      setDestinationPrices([...destinationPrices, { destination: destInput.trim(), serviceType: serviceTypeInput, price: priceInput }]);
+    }
+    
+    // Bersihkan form
+    setDestInput('');
+    setPriceInput('');
+  };
+
+  // Fungsi untuk menarik data rute ke form untuk diedit
+  const handleEditDestinationPrice = (index: number) => {
+    const item = destinationPrices[index];
+    setDestInput(item.destination);
+    setServiceTypeInput(item.serviceType);
+    setPriceInput(item.price);
+    setEditDestIndex(index);
+  };
+
+  // Fungsi membatalkan proses edit
+  const handleCancelEditDest = () => {
+    setEditDestIndex(null);
     setDestInput('');
     setPriceInput('');
   };
 
   const handleRemoveDestinationPrice = (index: number) => {
+    if (editDestIndex === index) {
+      handleCancelEditDest(); // Batalkan edit jika item yang sedang diedit dihapus
+    }
     setDestinationPrices(destinationPrices.filter((_, i) => i !== index));
   };
 
@@ -171,7 +208,6 @@ export default function AdminCarEditPage() {
       formData.append('status', status);
       formData.append('destinationPrices', JSON.stringify(destinationPrices));
       
-      // 🔥 MENGGUNAKAN JSON.STRINGIFY AGAR BACKEND BISA MEMBACA ID HAPUS DENGAN VALID
       formData.append('deletedImages', JSON.stringify(deletedImageIds));
       formData.append('deletedVideos', JSON.stringify(deletedVideoIds));
 
@@ -228,8 +264,17 @@ export default function AdminCarEditPage() {
           </div>
 
           {/* Pengaturan Harga Berdasarkan Tujuan & Jenis Layanan */}
-          <div className="p-5 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 space-y-4">
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-indigo-500">Tarif Berdasarkan Tujuan & Layanan</label>
+          <div className={`p-5 rounded-2xl border transition-all duration-300 ${editDestIndex !== null ? 'border-amber-500/50 bg-amber-500/5' : 'border-indigo-500/30 bg-indigo-500/5'} space-y-4`}>
+            <div className="flex justify-between items-center">
+              <label className={`block text-xs font-extrabold uppercase tracking-wider ${editDestIndex !== null ? 'text-amber-600 dark:text-amber-400' : 'text-indigo-500'}`}>
+                {editDestIndex !== null ? '✏️ Sedang Mengedit Rute' : 'Tarif Berdasarkan Tujuan & Layanan'}
+              </label>
+              {editDestIndex !== null && (
+                <button type="button" onClick={handleCancelEditDest} className="text-xs font-bold text-rose-500 hover:underline">
+                  Batal Edit
+                </button>
+              )}
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
               <div className="sm:col-span-4">
@@ -239,7 +284,7 @@ export default function AdminCarEditPage() {
                   value={destInput}
                   onChange={(e) => setDestInput(e.target.value)}
                   placeholder="Contoh: Jakarta / Bandung"
-                  className={`w-full p-3 rounded-xl border text-xs ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                  className={`w-full p-3 rounded-xl border text-xs focus:ring-2 ${editDestIndex !== null ? 'focus:ring-amber-500' : 'focus:ring-indigo-500'} ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
                 />
               </div>
               <div className="sm:col-span-4">
@@ -247,7 +292,7 @@ export default function AdminCarEditPage() {
                 <select
                   value={serviceTypeInput}
                   onChange={(e) => setServiceTypeInput(e.target.value as 'WITH_DRIVER' | 'CARTER_ALL_IN')}
-                  className={`w-full p-3 rounded-xl border text-xs ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                  className={`w-full p-3 rounded-xl border text-xs focus:ring-2 ${editDestIndex !== null ? 'focus:ring-amber-500' : 'focus:ring-indigo-500'} ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
                 >
                   <option value="WITH_DRIVER">Mobil + Supir</option>
                   <option value="CARTER_ALL_IN">Mobil + Supir Carter (All-in Bersih)</option>
@@ -260,37 +305,70 @@ export default function AdminCarEditPage() {
                   value={priceInput}
                   onChange={(e) => setPriceInput(e.target.value)}
                   placeholder="3500000"
-                  className={`w-full p-3 rounded-xl border text-xs ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
+                  className={`w-full p-3 rounded-xl border text-xs focus:ring-2 ${editDestIndex !== null ? 'focus:ring-amber-500' : 'focus:ring-indigo-500'} ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'}`}
                 />
               </div>
               <div className="sm:col-span-1">
                 <button 
                   type="button"
-                  onClick={handleAddDestinationPrice}
-                  className="w-full h-[42px] bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition shadow-md"
-                  title="Tambah Tarif"
+                  onClick={handleAddOrUpdateDestinationPrice}
+                  className={`w-full h-[42px] text-white rounded-xl flex items-center justify-center transition shadow-md ${
+                    editDestIndex !== null ? 'bg-amber-500 hover:bg-amber-600' : 'bg-indigo-600 hover:bg-indigo-500'
+                  }`}
+                  title={editDestIndex !== null ? 'Simpan Perubahan' : 'Tambah Tarif Baru'}
                 >
-                  <Plus size={18} />
+                  {editDestIndex !== null ? <Save size={18} /> : <Plus size={18} />}
                 </button>
               </div>
             </div>
 
             {priceInput && (
-              <p className="text-xs text-indigo-500 font-semibold">Format Preview: {formatRupiah(Number(priceInput) || 0)}</p>
+              <p className={`text-xs font-semibold ${editDestIndex !== null ? 'text-amber-500' : 'text-indigo-500'}`}>
+                Format Preview: {formatRupiah(Number(priceInput) || 0)}
+              </p>
             )}
 
+            {/* DAFTAR RUTE */}
             {destinationPrices.length > 0 ? (
               <div className="space-y-2 pt-2">
                 {destinationPrices.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs shadow-sm">
+                  <div 
+                    key={index} 
+                    className={`flex justify-between items-center px-4 py-3 rounded-xl border text-xs shadow-sm transition-all duration-300 ${
+                      editDestIndex === index 
+                        ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700' 
+                        : isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold">{index + 1}</span>
+                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold ${editDestIndex === index ? 'bg-amber-500/20 text-amber-600' : 'bg-indigo-500/10 text-indigo-500'}`}>
+                        {index + 1}
+                      </span>
                       <div>
                         <p className="font-bold">{item.destination} <span className="opacity-50 font-normal">({item.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih'})</span></p>
-                        <p className="text-indigo-600 dark:text-indigo-400 font-extrabold">{formatRupiah(Number(item.price))}</p>
+                        <p className={`font-extrabold ${editDestIndex === index ? 'text-amber-600 dark:text-amber-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                          {formatRupiah(Number(item.price))}
+                        </p>
                       </div>
                     </div>
-                    <button type="button" onClick={() => handleRemoveDestinationPrice(index)} className="text-rose-500 hover:text-rose-600 font-bold">Hapus</button>
+                    
+                    <div className="flex items-center gap-4">
+                      {/* Tombol Edit Baru */}
+                      <button 
+                        type="button" 
+                        onClick={() => handleEditDestinationPrice(index)} 
+                        className="text-amber-500 hover:text-amber-600 font-bold flex items-center gap-1"
+                      >
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveDestinationPrice(index)} 
+                        className="text-rose-500 hover:text-rose-600 font-bold flex items-center gap-1"
+                      >
+                        <Trash2 size={12} /> Hapus
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -332,7 +410,6 @@ export default function AdminCarEditPage() {
               <span className="text-xs font-bold text-indigo-500">{existingImages.length + selectedFiles.length}/10 Total File</span>
             </div>
 
-            {/* Foto Lama dari Database */}
             {existingImages.length > 0 && (
               <div className="mb-4">
                 <p className="text-[11px] font-bold uppercase text-slate-400 mb-2">Foto Saat Ini (Tersimpan):</p>
@@ -357,7 +434,6 @@ export default function AdminCarEditPage() {
               </div>
             )}
 
-            {/* Upload Foto Baru */}
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Upload size={18} className="text-indigo-600 dark:text-indigo-400" />
               <span>Klik untuk tambah foto baru</span>
@@ -391,7 +467,6 @@ export default function AdminCarEditPage() {
               <Video size={14} className="text-indigo-500" /> Kelola Video Dokumentasi
             </label>
 
-            {/* Video Lama dari Database */}
             {existingVideos.length > 0 && (
               <div className="mb-4 space-y-3">
                 <p className="text-[11px] font-bold uppercase text-slate-400">Video Saat Ini (Tersimpan):</p>
@@ -413,7 +488,6 @@ export default function AdminCarEditPage() {
               </div>
             )}
 
-            {/* Upload Video Baru */}
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Video size={18} className="text-indigo-600 dark:text-indigo-400" />
               <span>Klik untuk tambah file video baru</span>

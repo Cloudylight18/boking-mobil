@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bot, X, Send, Loader2 } from 'lucide-react';
 import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 interface HitsbahAIProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function HitsbahAIModal({ isOpen, onClose, isDarkMode }: HitsbahA
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { showLoader, hideLoader } = useLoading();
 
   // Ref untuk elemen auto-scroll ke bawah
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,6 +46,7 @@ export default function HitsbahAIModal({ isOpen, onClose, isDarkMode }: HitsbahA
     setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
     setInput('');
     setIsLoading(true);
+    showLoader(); // Nyalakan global loading logo Hitsbah berputar
 
     try {
       // Menggunakan instance API global untuk chat dengan asisten AI
@@ -55,6 +58,7 @@ export default function HitsbahAIModal({ isOpen, onClose, isDarkMode }: HitsbahA
       setMessages(prev => [...prev, { sender: 'assistant', text: 'Maaf, terjadi kesalahan saat menghubungi server AI Hitsbah Transport.' }]);
     } finally {
       setIsLoading(false);
+      hideLoader(); // Matikan global loading setelah selesai
     }
   };
 

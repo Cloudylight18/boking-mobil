@@ -22,7 +22,7 @@ import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
-import { useLoading } from '@/app/context/LoadingContext';
+import { useLoading } from '@/app/context/LoadingContext'; // Memanggil konteks loading global
 
 interface DashboardStats {
   totalRevenue: number;
@@ -70,10 +70,11 @@ export default function DashboardAdmin() {
     const todayStr = new Date().toISOString().split('T')[0];
     setSelectedDateStr(todayStr);
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
-    showLoader(); 
+    showLoader(); // Nyalakan loading logo Hitsbah berputar
     try {
       const [statsRes, txRes] = await Promise.all([
         API.get('/api/dashboard/stats'),
@@ -83,9 +84,10 @@ export default function DashboardAdmin() {
       setTransactions(txRes.data.data || []);
     } catch (error) {
       console.error('Gagal mengambil data dashboard:', error);
+      toast.error('Gagal memuat data dari server.');
     } finally {
       setIsLoading(false);
-      hideLoader(); 
+      hideLoader(); // Matikan loading
     }
   };
 
@@ -95,14 +97,14 @@ export default function DashboardAdmin() {
     );
     if (!isConfirm) return;
     
-    showLoader();
+    showLoader(); // Nyalakan loading saat proses reset
     try {
       await API.delete('/api/dashboard/visit/reset');
       toast.success('Angka pengunjung berhasil di-restart ke 0!');
-      fetchData(); 
+      await fetchData(); // Muat ulang data terbaru (loading otomatis tertangani di dalam fetchData)
     } catch (error) {
       toast.error('Gagal mereset pengunjung.');
-      hideLoader();
+      hideLoader(); // Matikan loading jika error
     }
   };
 
@@ -160,8 +162,11 @@ export default function DashboardAdmin() {
         </Link>
       </div>
 
+      {/* Jika masih memuat data awal, sembunyikan layout inti agar tidak berantakan (digantikan oleh overlay loading) */}
       {isLoading ? (
-        <div className="text-center py-28 opacity-60 font-medium tracking-wide text-sm">Memuat data real-time dari database...</div>
+        <div className="text-center py-28 opacity-60 font-medium tracking-wide text-sm">
+          Menyiapkan data dashboard Anda...
+        </div>
       ) : (
         <div className="grid grid-cols-12 gap-4 sm:gap-6">
           <div className="col-span-12 lg:col-span-8 flex flex-col gap-4 sm:gap-6">

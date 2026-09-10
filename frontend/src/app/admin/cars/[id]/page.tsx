@@ -53,7 +53,7 @@ export default function AdminCarDetailPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mendapatkan Base URL dari instance API untuk penanganan file gambar/video
+  // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan file gambar/video
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function AdminCarDetailPage() {
                   <button 
                     key={img.id}
                     onClick={() => setSelectedImage(img.imageUrl)}
-                    className={`h-24 rounded-2xl overflow-hidden border-2 transition-all shadow-md relative ${
+                    className={`h-24 rounded-2xl overflow-hidden border-2 transition-all shadow-md relative cursor-pointer ${
                       isSelected ? 'border-indigo-600 dark:border-indigo-500 scale-95 ring-2 ring-indigo-500/30' : 'border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100'
                     }`}
                   >
@@ -211,7 +211,7 @@ export default function AdminCarDetailPage() {
           <div className="mt-6">
             <Link 
               href={`/admin/cars/edit/${car.id}`}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition-all text-sm"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition-all text-sm cursor-pointer"
             >
               Edit Data Armada Ini
             </Link>

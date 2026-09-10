@@ -12,16 +12,28 @@ import LocationContact from './ecommer/components/LocationContact';
 import Footer from './ecommer/components/Footer';
 import WhatsAppFloat from './ecommer/components/WhatsAppFloat';
 import HitsbahAIModal from './ecommer/components/HitsbahAIModal';
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 export default function PublicCatalog() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isHitsbahAIOpen, setIsHitsbahAIOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  const { showLoader, hideLoader } = useLoading();
 
   useEffect(() => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
-    axios.post(`${backendUrl}/api/dashboard/visit`).catch(() => {});
+    const handleInitialLoad = async () => {
+      showLoader(); // Nyalakan global loading logo Hitsbah berputar saat halaman dibuka
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+        await axios.post(`${backendUrl}/api/dashboard/visit`);
+      } catch (error) {
+        // Abaikan error
+      } finally {
+        hideLoader(); // Matikan loading setelah selesai
+      }
+    };
+    handleInitialLoad();
   }, []);
 
   return (

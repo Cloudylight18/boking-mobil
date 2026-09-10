@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, Car as CarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api';
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 interface DestinationPrice {
   id: string;
@@ -27,17 +28,23 @@ export default function AdminTransactionEditPage() {
   const params = useParams();
   const id = params?.id;
   const router = useRouter();
+  const { showLoader, hideLoader } = useLoading();
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [cars, setCars] = useState<Car[]>([]);
 
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState(''); // State Nomor HP Customer
   const [address, setAddress] = useState('');
   
   // State untuk Armada Mobil
   const [selectedCarId, setSelectedCarId] = useState('');
   const [isCustomCar, setIsCustomCar] = useState(false);
   const [customCarName, setCustomCarName] = useState('');
+
+  // State untuk Driver / Supir
+  const [driverName, setDriverName] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
 
   // State untuk Rute/Tujuan
   const [selectedDestPriceId, setSelectedDestPriceId] = useState('');
@@ -65,6 +72,7 @@ export default function AdminTransactionEditPage() {
   useEffect(() => {
     if (!id) return;
     const fetchData = async () => {
+      showLoader();
       try {
         const [carsRes, txRes] = await Promise.all([
           API.get('/api/cars'),
@@ -76,7 +84,10 @@ export default function AdminTransactionEditPage() {
         const found = (txRes.data.data || []).find((item: any) => item.id === id);
         if (found) {
           setCustomerName(found.customerName);
+          setCustomerPhone(found.customerPhone || '');
           setAddress(found.address);
+          setDriverName(found.driverName || '');
+          setDriverPhone(found.driverPhone || '');
           setTravelDate(found.travelDate || '');
           setDurationDays(String(found.durationDays || 1));
           setShiftTime(found.shiftTime);
@@ -92,7 +103,6 @@ export default function AdminTransactionEditPage() {
             } else if (found.serviceType.toLowerCase().includes('all-in') || found.serviceType === 'CARTER_ALL_IN') {
               setCustomServiceTypeSelect('CARTER_ALL_IN');
             } else {
-              // Jika tipe layanan tidak standar, jadikan custom
               setIsCustomService(true);
               setCustomServiceName(found.serviceType);
               isServiceCustom = true;
@@ -105,7 +115,6 @@ export default function AdminTransactionEditPage() {
             setSelectedCarId(matchedCar.id);
             setIsCustomCar(false);
 
-            // Cek apakah rute ada di list mobil tersebut
             const matchedRoute = matchedCar.destinationPrices?.find((dp: DestinationPrice) => dp.destination.toLowerCase() === found.destination.toLowerCase());
             if (matchedRoute) {
               setSelectedDestPriceId(matchedRoute.id);
@@ -114,7 +123,6 @@ export default function AdminTransactionEditPage() {
                 setCustomServiceTypeSelect(matchedRoute.serviceType);
               }
             } else {
-              // Jika rute manual
               setIsCustomDest(true);
               setSelectedDestPriceId('LAINNYA');
               setCustomDestName(found.destination);
@@ -122,7 +130,6 @@ export default function AdminTransactionEditPage() {
               setCustomPricePerDay(String(unitEst || ''));
             }
           } else {
-            // Jika mobil custom/manual
             setIsCustomCar(true);
             setSelectedCarId('LAINNYA');
             setCustomCarName(found.carName);
@@ -141,6 +148,7 @@ export default function AdminTransactionEditPage() {
         toast.error('Gagal memuat data transaksi.');
       } finally {
         setIsLoading(false);
+        hideLoader();
       }
     };
     fetchData();
@@ -173,7 +181,6 @@ export default function AdminTransactionEditPage() {
     } else {
       setIsCustomDest(false);
       setSelectedDestPriceId(val);
-      // Sinkronkan tipe layanan otomatis jika dari database
       const foundRoute = selectedCar?.destinationPrices.find(dp => dp.id === val);
       if (foundRoute) {
         setIsCustomService(false);
@@ -305,12 +312,16 @@ export default function AdminTransactionEditPage() {
     const daysNum = durationDays === '' ? 1 : Number(durationDays);
 
     setIsSaving(true);
+    showLoader();
     try {
       await API.put(`/api/transactions/${id}`, {
         customerName,
+        customerPhone,
         address,
         carName: finalCarName,
         destination: finalDestName,
+        driverName,
+        driverPhone,
         travelDate,
         durationDays: daysNum,
         dateDetails: generateDateDetails(),
@@ -326,6 +337,7 @@ export default function AdminTransactionEditPage() {
     } catch (error) {
       toast.error('Gagal memperbarui transaksi.');
       setIsSaving(false);
+      hideLoader();
     }
   };
 
@@ -348,10 +360,12 @@ export default function AdminTransactionEditPage() {
             <ArrowLeft size={16} /> Kembali ke Daftar Transaksi
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">Edit Nota POS Travel</h1>
-          <p className="text-xs sm:text-sm opacity-70 mt-1">Perbarui rincian nota transaksi perjalanan pelanggan.</p>
+          <p className="text-xs sm:text-sm opacity-70 mt-1">Perbarui rincian nota transaksi perjalanan, driver, dan kontak pelanggan.</p>
         </div>
 
         <form onSubmit={handleSubmit} className={`p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+          
+          {/* Identitas Customer & Nomor HP */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -367,13 +381,54 @@ export default function AdminTransactionEditPage() {
             </div>
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
-                <Home size={14} className="text-indigo-500" /> Alamat
+                <Phone size={14} className="text-indigo-500" /> Nomor HP / WhatsApp Pemesan
               </label>
               <input 
                 type="text" 
-                required
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="Contoh: 081234567890" 
+                className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+              <Home size={14} className="text-indigo-500" /> Alamat / Penjemputan
+            </label>
+            <input 
+              type="text" 
+              required
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+            />
+          </div>
+
+          {/* Informasi Driver / Supir */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div>
+              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+                <CarIcon size={14} className="text-emerald-500" /> Nama Driver / Supir Bertugas
+              </label>
+              <input 
+                type="text" 
+                value={driverName}
+                onChange={(e) => setDriverName(e.target.value)}
+                placeholder="Contoh: Bpk. Andi (Driver)" 
+                className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+                <Phone size={14} className="text-emerald-500" /> Nomor HP / WhatsApp Driver
+              </label>
+              <input 
+                type="text" 
+                value={driverPhone}
+                onChange={(e) => setDriverPhone(e.target.value)}
+                placeholder="Contoh: 089876543210" 
                 className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
               />
             </div>

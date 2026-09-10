@@ -1,18 +1,22 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigation, Search, DollarSign, Activity, Percent } from 'lucide-react';
+import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigation, Search, DollarSign, Activity, Percent, Phone, Car as CarIcon } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 interface TransactionItem {
   id: string;
   customerName: string;
+  customerPhone?: string;
   address: string;
   carName: string;
   destination: string;
+  driverName?: string;
+  driverPhone?: string;
   travelDate: string;
   durationDays?: number;
   dateDetails?: string;
@@ -25,6 +29,7 @@ interface TransactionItem {
 }
 
 export default function AdminTransactionsPage() {
+  const { showLoader, hideLoader } = useLoading();
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +39,7 @@ export default function AdminTransactionsPage() {
   }, []);
 
   const fetchTransactions = async () => {
+    showLoader();
     try {
       const res = await API.get('/api/transactions');
       setTransactions(res.data.data || []);
@@ -41,17 +47,20 @@ export default function AdminTransactionsPage() {
       toast.error('Gagal memuat data transaksi POS.');
     } finally {
       setIsLoading(false);
+      hideLoader();
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Yakin ingin menghapus nota transaksi ini?')) return;
+    showLoader();
     try {
       await API.delete(`/api/transactions/${id}`);
       toast.success('Transaksi berhasil dihapus.');
       fetchTransactions();
     } catch (error) {
       toast.error('Gagal menghapus transaksi.');
+      hideLoader();
     }
   };
 
@@ -79,7 +88,7 @@ export default function AdminTransactionsPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Nota Transaksi Travel & Rental</h1>
           <p className="text-xs sm:text-sm opacity-70 mt-1">
-            Kelola nota perjalanan, carter armada, jadwal sewa, dan status pelunasan pembayaran pelanggan secara real-time.
+            Kelola nota perjalanan, carter armada, jadwal sewa, kontak driver, dan status pelunasan pembayaran pelanggan secara real-time.
           </p>
         </div>
         <Link 
@@ -165,7 +174,12 @@ export default function AdminTransactionsPage() {
                   <h3 className="text-xl font-black tracking-tight mb-0.5 flex items-center gap-2">
                     <User size={16} className="text-indigo-500" /> {tx.customerName}
                   </h3>
-                  <p className="text-xs opacity-70 line-clamp-1">
+                  {tx.customerPhone && (
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1 mt-0.5">
+                      <Phone size={12} /> {tx.customerPhone}
+                    </p>
+                  )}
+                  <p className="text-xs opacity-70 line-clamp-1 mt-1">
                     Alamat: {tx.address}
                   </p>
                 </div>
@@ -185,6 +199,18 @@ export default function AdminTransactionsPage() {
                     </span>
                     <span className="font-bold text-indigo-600 dark:text-indigo-400 text-right">{tx.destination}</span>
                   </div>
+
+                  {/* Driver Info if exists */}
+                  {(tx.driverName || tx.driverPhone) && (
+                    <div className="flex justify-between items-center bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
+                      <span className="opacity-75 flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                        <CarIcon size={13} /> Driver:
+                      </span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300 text-right">
+                        {tx.driverName || '-'} {tx.driverPhone ? `(${tx.driverPhone})` : ''}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between items-center">
                     <span className="opacity-70 flex items-center gap-1.5 font-medium">

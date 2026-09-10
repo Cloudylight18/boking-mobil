@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { MessageCircle, ArrowLeft, CheckCircle2, Moon, Sun, Navigation, Video } from 'lucide-react';
@@ -75,7 +75,7 @@ export default function DetailMobilPage() {
         toast.error('Gagal memuat detail mobil');
       } finally {
         setIsLoading(false);
-        hideLoader(); // Matikan loading
+        hideLoader(); // Matikan loading logo Hitsbah berputar
       }
     };
     fetchCarDetail();

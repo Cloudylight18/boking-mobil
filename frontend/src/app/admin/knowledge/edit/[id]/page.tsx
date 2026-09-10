@@ -6,22 +6,26 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
 import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { useLoading } from '@/app/context/LoadingContext'; // Memanggil konteks loading global
 
 export default function AdminKnowledgeEditPage() {
   const params = useParams();
   const id = params?.id;
   const router = useRouter();
+  const { showLoader, hideLoader } = useLoading(); // Inisialisasi fungsi loading global
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('FAQ');
   const [content, setContent] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // State lokal ini tetap dipertahankan untuk men-disable tombol saat menyimpan
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    // Menggunakan instance API global untuk mengambil data knowledge
+    
+    showLoader(); // Nyalakan animasi loading global saat mengambil data
     API.get('/api/knowledge')
       .then(res => {
         const found = (res.data.data || []).find((item: any) => item.id === id);
@@ -34,12 +38,16 @@ export default function AdminKnowledgeEditPage() {
         }
       })
       .catch(() => toast.error('Gagal memuat data.'))
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        hideLoader(); // Matikan animasi loading global
+      });
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    showLoader(); // Nyalakan animasi loading global saat menyimpan perubahan
+
     try {
       // Menggunakan instance API global untuk memperbarui data
       await API.put(`/api/knowledge/${id}`, { title, category, content });
@@ -48,10 +56,9 @@ export default function AdminKnowledgeEditPage() {
     } catch (error) {
       toast.error('Gagal memperbarui knowledge.');
       setIsSaving(false);
+      hideLoader(); // Matikan loading jika terjadi error
     }
   };
-
-  if (isLoading) return <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">Memuat data...</div>;
 
   return (
     <div className={`min-h-screen transition-colors ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -105,7 +112,7 @@ export default function AdminKnowledgeEditPage() {
             />
           </div>
 
-          <div className="pt-6 flex justify-end gap-4 border-t border-slate-700">
+          <div className="pt-6 flex justify-end gap-4 border-t border-slate-200 dark:border-slate-700">
             <Link 
               href="/admin/knowledge"
               className="px-6 py-3.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-2xl text-sm font-semibold transition"
@@ -115,7 +122,7 @@ export default function AdminKnowledgeEditPage() {
             <button 
               type="submit"
               disabled={isSaving}
-              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white rounded-2xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+              className={`px-8 py-3.5 text-white rounded-2xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center gap-2 ${isSaving ? 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer'}`}
             >
               <Save size={18} /> Simpan Perubahan
             </button>

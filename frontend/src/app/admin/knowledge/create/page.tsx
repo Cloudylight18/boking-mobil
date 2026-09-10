@@ -6,18 +6,25 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { useLoading } from '@/app/context/LoadingContext'; // Memanggil konteks loading global
 
 export default function AdminKnowledgeCreatePage() {
   const router = useRouter();
+  const { showLoader, hideLoader } = useLoading(); // Inisialisasi fungsi loading global
+  
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('FAQ');
   const [content, setContent] = useState('');
+  
+  // State lokal ini tetap dipertahankan untuk men-disable tombol submit agar tidak diklik dua kali
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    showLoader(); // Nyalakan animasi loading logo Hitsbah berputar
+
     try {
       // Menggunakan instance API global
       await API.post('/api/knowledge', { title, category, content });
@@ -25,7 +32,10 @@ export default function AdminKnowledgeCreatePage() {
       setTimeout(() => router.push('/admin/knowledge'), 1000);
     } catch (error) {
       toast.error('Gagal menyimpan knowledge.');
+    } finally {
+      // Matikan status loading lokal dan global terlepas dari sukses atau gagal
       setIsLoading(false);
+      hideLoader(); 
     }
   };
 
@@ -83,7 +93,7 @@ export default function AdminKnowledgeCreatePage() {
             />
           </div>
 
-          <div className="pt-6 flex justify-end gap-4 border-t border-slate-700">
+          <div className="pt-6 flex justify-end gap-4 border-t border-slate-200 dark:border-slate-700">
             <Link 
               href="/admin/knowledge"
               className="px-6 py-3.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-2xl text-sm font-semibold transition"
@@ -93,7 +103,7 @@ export default function AdminKnowledgeCreatePage() {
             <button 
               type="submit"
               disabled={isLoading}
-              className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white rounded-2xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+              className={`px-8 py-3.5 text-white rounded-2xl text-sm font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center gap-2 ${isLoading ? 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer'}`}
             >
               <Save size={18} /> Simpan Knowledge
             </button>

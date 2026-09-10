@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, Car as CarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api';
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah
 
 interface DestinationPrice {
   id: string;
@@ -25,16 +26,22 @@ interface Car {
 
 export default function AdminTransactionCreatePage() {
   const router = useRouter();
+  const { showLoader, hideLoader } = useLoading();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [cars, setCars] = useState<Car[]>([]);
 
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState(''); // State Nomor HP Customer
   const [address, setAddress] = useState('');
   
   // State untuk Armada Mobil
   const [selectedCarId, setSelectedCarId] = useState('');
   const [isCustomCar, setIsCustomCar] = useState(false);
   const [customCarName, setCustomCarName] = useState('');
+
+  // State untuk Driver / Supir
+  const [driverName, setDriverName] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
 
   // State untuk Rute/Tujuan
   const [selectedDestPriceId, setSelectedDestPriceId] = useState('');
@@ -58,12 +65,14 @@ export default function AdminTransactionCreatePage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    showLoader();
     API.get('/api/cars')
       .then(res => {
         const responseData = res.data.data || res.data.cars || res.data || [];
         setCars(Array.isArray(responseData) ? responseData : []);
       })
-      .catch(() => toast.error('Gagal memuat daftar armada mobil.'));
+      .catch(() => toast.error('Gagal memuat daftar armada mobil.'))
+      .finally(() => hideLoader());
   }, []);
 
   const selectedCar = cars.find(c => c.id === selectedCarId);
@@ -93,7 +102,6 @@ export default function AdminTransactionCreatePage() {
     } else {
       setIsCustomDest(false);
       setSelectedDestPriceId(val);
-      // Sinkronkan tipe layanan otomatis jika dari database
       const foundRoute = selectedCar?.destinationPrices.find(dp => dp.id === val);
       if (foundRoute) {
         setIsCustomService(false);
@@ -225,12 +233,16 @@ export default function AdminTransactionCreatePage() {
     const daysNum = durationDays === '' ? 1 : Number(durationDays);
 
     setIsLoading(true);
+    showLoader();
     try {
       await API.post('/api/transactions', {
         customerName,
+        customerPhone, // Menyimpan nomor HP pemesan
         address,
         carName: finalCarName,
         destination: finalDestName,
+        driverName,   // Menyimpan nama supir
+        driverPhone,  // Menyimpan nomor HP supir
         travelDate,
         durationDays: daysNum,
         dateDetails: generateDateDetails(),
@@ -246,6 +258,7 @@ export default function AdminTransactionCreatePage() {
     } catch (error) {
       toast.error('Gagal menyimpan transaksi.');
       setIsLoading(false);
+      hideLoader();
     }
   };
 
@@ -265,13 +278,13 @@ export default function AdminTransactionCreatePage() {
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">Buat Nota POS Travel & Rental</h1>
           <p className={`text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            Catat pemesanan perjalanan dengan pemilihan rute fleksibel, kalkulasi otomatis, dan potongan diskon.
+            Catat pemesanan perjalanan lengkap dengan informasi driver, kontak pelanggan, rute, dan kalkulasi otomatis.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className={`p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
           
-          {/* Identitas Customer */}
+          {/* Identitas Customer & Nomor HP */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -288,14 +301,55 @@ export default function AdminTransactionCreatePage() {
             </div>
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
-                <Home size={14} className="text-indigo-500" /> Alamat / Penjemputan
+                <Phone size={14} className="text-indigo-500" /> Nomor HP / WhatsApp Pemesan
               </label>
               <input 
                 type="text" 
-                required
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Contoh: Jl. Pangeran Indah, Indramayu" 
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="Contoh: 081234567890" 
+                className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+              <Home size={14} className="text-indigo-500" /> Alamat / Penjemputan
+            </label>
+            <input 
+              type="text" 
+              required
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Contoh: Jl. Pangeran Indah, Indramayu" 
+              className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+            />
+          </div>
+
+          {/* Informasi Driver / Supir */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div>
+              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+                <CarIcon size={14} className="text-emerald-500" /> Nama Driver / Supir Bertugas
+              </label>
+              <input 
+                type="text" 
+                value={driverName}
+                onChange={(e) => setDriverName(e.target.value)}
+                placeholder="Contoh: Bpk. Andi (Driver)" 
+                className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+                <Phone size={14} className="text-emerald-500" /> Nomor HP / WhatsApp Driver
+              </label>
+              <input 
+                type="text" 
+                value={driverPhone}
+                onChange={(e) => setDriverPhone(e.target.value)}
+                placeholder="Contoh: 089876543210" 
                 className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
               />
             </div>
@@ -399,7 +453,7 @@ export default function AdminTransactionCreatePage() {
             </div>
           </div>
 
-          {/* Pemilihan Tipe Layanan (Bisa Dipilih atau Input Manual "Lainnya") */}
+          {/* Pemilihan Tipe Layanan */}
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">

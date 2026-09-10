@@ -1,20 +1,24 @@
 'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Printer, Download, Share2, Percent, MapPin, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Printer, Download, Share2, Percent, MapPin, MessageCircle, Phone, User, Car as CarIcon } from 'lucide-react';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import toast, { Toaster } from 'react-hot-toast';
 import * as htmlToImage from 'html-to-image';
 import { API } from '@/app/utils/api';
-import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
+import { useLoading } from '@/app/context/LoadingContext'; 
 
 interface TransactionItem {
   id: string;
   customerName: string;
+  customerPhone?: string;
   address: string;
   carName: string;
   destination: string;
+  driverName?: string;
+  driverPhone?: string;
   travelDate: string;
   durationDays: number;
   dateDetails?: string;
@@ -204,16 +208,13 @@ export default function AdminTransactionDetailPage() {
         {/* Header Nota dengan Logo di Kiri dan Info Kontak di Kanan */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6 mb-6">
           <div className="flex items-center gap-3">
-            {/* Logo icon.png */}
             <img src="/icon.png" alt="Hitsbah Logo" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover shadow-md border border-slate-200 shrink-0" />
             <div>
               <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-indigo-600">HITSBAH TRANSPORT</h2>
-              {/* Alamat dengan Icon */}
               <p className="text-xs text-slate-600 mt-1 flex items-start gap-1 max-w-sm">
                 <MapPin size={14} className="text-indigo-500 shrink-0 mt-0.5" />
                 <span>Pangauban, Kec. Lelea, Kabupaten Indramayu, Jawa Barat 45261</span>
               </p>
-              {/* WhatsApp dengan Icon */}
               <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
                 <MessageCircle size={14} className="text-emerald-600 shrink-0" />
                 <span className="font-semibold">0896-2302-1975</span>
@@ -232,16 +233,32 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
+        {/* Informasi Pemesan & Detail Armada/Driver */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-sm">
-          <div className="space-y-1 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600">Informasi Pemesan</p>
+          <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 flex items-center gap-1">
+              <User size={12} /> Informasi Pemesan
+            </p>
             <p className="font-bold text-base text-slate-900">{tx.customerName}</p>
+            {tx.customerPhone && (
+              <p className="text-xs text-slate-700 flex items-center gap-1">
+                <Phone size={12} className="text-indigo-500" /> HP/WA: <span className="font-semibold">{tx.customerPhone}</span>
+              </p>
+            )}
             <p className="text-xs text-slate-600 break-words">Alamat: {tx.address}</p>
           </div>
-          <div className="space-y-1 p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600">Detail Armada & Tujuan</p>
+
+          <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 flex items-center gap-1">
+              <CarIcon size={12} /> Detail Armada & Tujuan
+            </p>
             <p className="font-bold text-base text-slate-900">{tx.carName}</p>
             <p className="text-xs text-slate-600">Tujuan: <span className="font-semibold text-slate-900">{tx.destination}</span></p>
+            {(tx.driverName || tx.driverPhone) && (
+              <div className="pt-1 mt-1 border-t border-slate-200 text-xs text-slate-700">
+                <span className="font-bold text-emerald-600">Driver:</span> {tx.driverName || '-'} {tx.driverPhone ? `(${tx.driverPhone})` : ''}
+              </div>
+            )}
           </div>
         </div>
 
@@ -251,7 +268,7 @@ export default function AdminTransactionDetailPage() {
             <div className="grid grid-cols-3 bg-slate-50 p-2.5 sm:p-3 font-extrabold uppercase text-slate-600 border-b border-slate-200 text-[11px] sm:text-xs">
               <span>Tanggal</span>
               <span>Durasi</span>
-              <span>Shift</span>
+              <span>Jam/Shift</span>
             </div>
             <div className="grid grid-cols-3 p-2.5 sm:p-3 items-center text-slate-900">
               <span className="font-semibold">{tx.travelDate}</span>
@@ -317,7 +334,7 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Bagian Catatan & Hormat Kami (Tanpa space tanda tangan berlebih) */}
+        {/* Bagian Catatan & Hormat Kami */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 pt-6 border-t border-slate-200 text-xs text-slate-600 mb-8">
           <div>
             <p className="font-bold mb-1 text-slate-900">Catatan Penting:</p>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, Navigation, Sparkles, Car as CarIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatRupiah } from '@/app/utils/formatRupiah';
+import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 interface DestinationPrice {
   id: string;
@@ -30,12 +31,14 @@ interface CatalogProps {
 export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
   const [cars, setCars] = useState<CarItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { showLoader, hideLoader } = useLoading();
 
   // Mendapatkan Base URL dari environment variable atau fallback produksi Hostinger
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
 
   useEffect(() => {
     const fetchCars = async () => {
+      showLoader(); // Menyalakan animasi loading logo Hitsbah berputar
       try {
         const response = await axios.get(`${backendUrl}/api/cars`);
         setCars(response.data.data || []);
@@ -43,6 +46,7 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
         toast.error('Gagal memuat katalog mobil');
       } finally {
         setIsLoading(false);
+        hideLoader(); // Mematikan animasi loading setelah data selesai dimuat
       }
     };
     fetchCars();
@@ -87,8 +91,8 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
             const activeImg = car.images?.[0]?.imageUrl;
             const mainImg = activeImg 
               ? (activeImg.startsWith('http') 
-                  ? activeImg 
-                  : `${backendUrl}${activeImg.startsWith('/') ? '' : '/'}${activeImg}`)
+                ? activeImg 
+                : `${backendUrl}${activeImg.startsWith('/') ? '' : '/'}${activeImg}`)
               : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80';
 
             return (

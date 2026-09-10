@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { User, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { useLoading } from '@/app/context/LoadingContext'; // Memanggil konteks loading global
 
 export default function AnimatedLoginPage() {
   const [username, setUsername] = useState('');
@@ -12,14 +13,17 @@ export default function AnimatedLoginPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+  const { showLoader, hideLoader } = useLoading(); // Inisialisasi fungsi loading global
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    showLoader(); // Nyalakan animasi loading logo Hitsbah berputar secara global
 
     // Simulasi animasi sukses login
     setTimeout(() => {
       setLoading(false);
+      hideLoader(); // Matikan loading global sebelum menampilkan state sukses
       setSuccess(true);
       setTimeout(() => {
         router.push('/admin/dashboard');

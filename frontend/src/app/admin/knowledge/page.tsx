@@ -5,6 +5,7 @@ import { Plus, Trash2, Edit3, BookOpen, Search } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { API } from '@/app/utils/api'; // Menggunakan instance API global
+import { useLoading } from '@/app/context/LoadingContext'; // Memanggil konteks loading global
 
 interface KnowledgeItem {
   id: string;
@@ -15,6 +16,7 @@ interface KnowledgeItem {
 }
 
 export default function AdminKnowledgePage() {
+  const { showLoader, hideLoader } = useLoading(); // Inisialisasi fungsi loading global
   const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +26,7 @@ export default function AdminKnowledgePage() {
   }, []);
 
   const fetchKnowledge = async () => {
+    showLoader(); // Nyalakan animasi loading global saat mengambil data
     try {
       // Menggunakan instance API global
       const res = await API.get('/api/knowledge');
@@ -32,18 +35,22 @@ export default function AdminKnowledgePage() {
       toast.error('Gagal memuat database knowledge.');
     } finally {
       setIsLoading(false);
+      hideLoader(); // Matikan animasi loading global
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus informasi knowledge ini?')) return;
+    
+    showLoader(); // Nyalakan animasi loading global saat proses hapus
     try {
       // Menggunakan instance API global untuk hapus data
       await API.delete(`/api/knowledge/${id}`);
       toast.success('Knowledge berhasil dihapus.');
-      fetchKnowledge();
+      await fetchKnowledge(); // Memuat ulang data (loading ditangani di dalam fetchKnowledge)
     } catch (error) {
       toast.error('Gagal menghapus knowledge.');
+      hideLoader(); // Matikan loading jika terjadi error
     }
   };
 
