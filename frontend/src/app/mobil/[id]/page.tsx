@@ -60,7 +60,7 @@ export default function DetailMobilPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan gambar dan video
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingsite.com';
 
   useEffect(() => {
     if (!id) return;
@@ -121,7 +121,7 @@ export default function DetailMobilPage() {
     <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
       <Toaster position="top-right" />
 
-      {/* Top Navigation & Dark Mode Toggle - Mengarahkan kembali langsung ke Katalog */}
+      {/* Top Navigation & Dark Mode Toggle - Mengarahkan kembali langsung ke Katalog dengan parameter query tab */}
       <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
         <Link 
           href="/?tab=katalog" 
