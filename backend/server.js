@@ -55,9 +55,8 @@ app.use(express.urlencoded({ extended: true }));
 // ==========================================
 // PENTING: AKSES PUBLIK FOLDER UPLOADS
 // ==========================================
-// Menggunakan process.cwd() agar path folder public/uploads dijamin akurat 100% 
-// di manapun file server.js ini diposisikan pada direktori backend Anda.
-app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
+// Menggunakan __dirname agar mutlak mengarah ke folder public di sebelah file server.js
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // ==========================================
 // 4. HUBUNGKAN ROUTES (JALUR API)
