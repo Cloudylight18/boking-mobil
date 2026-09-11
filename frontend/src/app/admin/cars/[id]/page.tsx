@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, ShieldCheck, Tag, ImageIcon, Video, Navigation } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldCheck, Tag, ImageIcon, Video, Navigation, Maximize2, X } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
@@ -52,6 +52,9 @@ export default function AdminCarDetailPage() {
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // State untuk Popup Modal Video Fullscreen (Instagram/Shorts Style)
+  const [activeVideoPopup, setActiveVideoPopup] = useState<string | null>(null);
 
   // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan file gambar/video
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
@@ -149,7 +152,7 @@ export default function AdminCarDetailPage() {
             </div>
           )}
 
-          {/* Galeri Video (Resolusi Full Cover) */}
+          {/* Galeri Video dengan object-contain dan tombol Perbesar Layar */}
           {car.videos && car.videos.length > 0 && (
             <div className="pt-4">
               <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -161,9 +164,18 @@ export default function AdminCarDetailPage() {
                     ? vid.videoUrl 
                     : `${backendUrl}${vid.videoUrl.startsWith('/') ? '' : '/'}${vid.videoUrl}`;
                   return (
-                    <div key={vid.id} className="h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-xl">
-                      {/* Tampilan video di-set full object-cover agar HD dan proporsional */}
-                      <video src={vidUrl} controls className="w-full h-full object-cover" />
+                    <div key={vid.id} className="group relative h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-xl">
+                      {/* Menggunakan object-contain agar video tampil murni tanpa terpotong/zoom */}
+                      <video src={vidUrl} controls preload="metadata" playsInline className="w-full h-full object-contain bg-black" />
+                      
+                      {/* Tombol Perbesar Video Popup */}
+                      <button 
+                        onClick={() => setActiveVideoPopup(vidUrl)}
+                        className="absolute top-4 right-4 bg-slate-900/80 hover:bg-emerald-600 text-white p-3 rounded-2xl backdrop-blur-md transition-all duration-300 shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer opacity-90 group-hover:opacity-100"
+                        title="Perbesar Video"
+                      >
+                        <Maximize2 size={16} /> Perbesar Layar
+                      </button>
                     </div>
                   );
                 })}
@@ -257,6 +269,32 @@ export default function AdminCarDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* POPUP MODAL VIDEO FULLSCREEN (IG/Shorts Style) */}
+      {activeVideoPopup && (
+        <div className="fixed inset-0 z-[99999] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
+          <div className="relative w-full max-w-5xl h-[80vh] bg-black rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex items-center justify-center">
+            
+            {/* Tombol Close Popup */}
+            <button 
+              onClick={() => setActiveVideoPopup(null)}
+              className="absolute top-4 right-4 z-50 bg-slate-900/80 hover:bg-rose-600 text-white p-3 rounded-full transition-all duration-300 shadow-lg cursor-pointer"
+              title="Tutup"
+            >
+              <X size={22} />
+            </button>
+
+            {/* Video Player Fullscreen Murni */}
+            <video 
+              src={activeVideoPopup} 
+              controls 
+              autoPlay
+              playsInline
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

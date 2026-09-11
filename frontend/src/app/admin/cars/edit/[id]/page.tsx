@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Upload, X, Plus, Video, Image as ImageIcon, Trash2, Edit2 } from 'lucide-react';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, Save, Upload, X, Plus, Video, Image as ImageIcon, Trash2, Edit2 } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
@@ -26,7 +26,7 @@ export default function AdminCarEditPage() {
   const [serviceTypeInput, setServiceTypeInput] = useState<'WITH_DRIVER' | 'CARTER_ALL_IN'>('WITH_DRIVER');
   const [priceInput, setPriceInput] = useState('');
   
-  // State baru untuk melacak rute mana yang sedang di-edit
+  // State untuk melacak rute mana yang sedang di-edit
   const [editDestIndex, setEditDestIndex] = useState<number | null>(null);
 
   // State File Lama dari Database
@@ -35,14 +35,10 @@ export default function AdminCarEditPage() {
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
   const [deletedVideoIds, setDeletedVideoIds] = useState<string[]>([]);
 
-  // State Foto Baru
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  // State URL File Baru hasil Pre-Upload Server
+  const [uploadedNewImages, setUploadedNewImages] = useState<string[]>([]);
+  const [uploadedNewVideos, setUploadedNewVideos] = useState<string[]>([]);
 
-  // State Video Baru
-  const [selectedVideos, setSelectedVideos] = useState<File[]>([]);
-  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
-  
   const [termInput, setTermInput] = useState('');
   const [terms, setTerms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,42 +93,75 @@ export default function AdminCarEditPage() {
     setDeletedVideoIds([...deletedVideoIds, videoId]);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+  // OTOMATIS UPLOAD FOTO BARU KE SERVER (Pre-Upload Workflow)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
-      const totalActiveImages = existingImages.length + selectedFiles.length + filesArray.length;
+      const totalActiveImages = existingImages.length + uploadedNewImages.length + filesArray.length;
 
       if (totalActiveImages > 10) {
         toast.error('Maksimal total foto adalah 10 file.');
         return;
       }
 
-      setSelectedFiles([...selectedFiles, ...filesArray]);
-      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
-      setPreviews([...previews, ...newPreviews]);
+      const formData = new FormData();
+      filesArray.forEach(file => {
+        formData.append('images', file);
+      });
+
+      showLoader();
+      try {
+        const response = await API.post('/api/cars/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (response.data.success && response.data.images) {
+          setUploadedNewImages(prev => [...prev, ...response.data.images]);
+          toast.success('Foto baru berhasil diunggah ke server.');
+        }
+      } catch (error) {
+        toast.error('Gagal mengunggah foto baru ke server.');
+      } finally {
+        hideLoader();
+      }
     }
   };
 
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
-    setPreviews(previews.filter((_, i) => i !== index));
+  const handleRemoveNewFile = (index: number) => {
+    setUploadedNewImages(uploadedNewImages.filter((_, i) => i !== index));
   };
 
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+  // OTOMATIS UPLOAD VIDEO BARU KE SERVER (Pre-Upload Workflow)
+  const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
       const videosArray = Array.from(e.target.files);
-      setSelectedVideos([...selectedVideos, ...videosArray]);
-      const newVideoPreviews = videosArray.map(file => URL.createObjectURL(file));
-      setVideoPreviews([...videoPreviews, ...newVideoPreviews]);
+      
+      const formData = new FormData();
+      videosArray.forEach(video => {
+        formData.append('videos', video);
+      });
+
+      showLoader();
+      try {
+        const response = await API.post('/api/cars/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (response.data.success && response.data.videos) {
+          setUploadedNewVideos(prev => [...prev, ...response.data.videos]);
+          toast.success('Video baru berhasil diunggah ke server.');
+        }
+      } catch (error) {
+        toast.error('Gagal mengunggah video baru ke server.');
+      } finally {
+        hideLoader();
+      }
     }
   };
 
-  const handleRemoveVideo = (index: number) => {
-    setSelectedVideos(selectedVideos.filter((_, i) => i !== index));
-    setVideoPreviews(videoPreviews.filter((_, i) => i !== index));
+  const handleRemoveNewVideo = (index: number) => {
+    setUploadedNewVideos(uploadedNewVideos.filter((_, i) => i !== index));
   };
 
-  // --- LOGIC BARU UNTUK EDIT/TAMBAH RUTE TUJUAN ---
+  // Logic Edit/Tambah Rute Tujuan
   const handleAddOrUpdateDestinationPrice = () => {
     if (!destInput.trim() || !priceInput) {
       toast.error('Destinasi dan harga harus diisi!');
@@ -140,7 +169,6 @@ export default function AdminCarEditPage() {
     }
 
     if (editDestIndex !== null) {
-      // Mode Update/Edit
       const updatedPrices = [...destinationPrices];
       updatedPrices[editDestIndex] = { 
         destination: destInput.trim(), 
@@ -148,19 +176,16 @@ export default function AdminCarEditPage() {
         price: priceInput 
       };
       setDestinationPrices(updatedPrices);
-      setEditDestIndex(null); // Reset mode edit
+      setEditDestIndex(null);
       toast.success('Rute dan tarif berhasil diperbarui di daftar!');
     } else {
-      // Mode Tambah Baru
       setDestinationPrices([...destinationPrices, { destination: destInput.trim(), serviceType: serviceTypeInput, price: priceInput }]);
     }
     
-    // Bersihkan form
     setDestInput('');
     setPriceInput('');
   };
 
-  // Fungsi untuk menarik data rute ke form untuk diedit
   const handleEditDestinationPrice = (index: number) => {
     const item = destinationPrices[index];
     setDestInput(item.destination);
@@ -169,7 +194,6 @@ export default function AdminCarEditPage() {
     setEditDestIndex(index);
   };
 
-  // Fungsi membatalkan proses edit
   const handleCancelEditDest = () => {
     setEditDestIndex(null);
     setDestInput('');
@@ -178,7 +202,7 @@ export default function AdminCarEditPage() {
 
   const handleRemoveDestinationPrice = (index: number) => {
     if (editDestIndex === index) {
-      handleCancelEditDest(); // Batalkan edit jika item yang sedang diedit dihapus
+      handleCancelEditDest();
     }
     setDestinationPrices(destinationPrices.filter((_, i) => i !== index));
   };
@@ -193,6 +217,7 @@ export default function AdminCarEditPage() {
     setTerms(terms.filter((_, i) => i !== index));
   };
 
+  // SUBMIT AKHIR BERUPA JSON YANG BERSIH & AMAN
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (destinationPrices.length === 0) {
@@ -202,28 +227,19 @@ export default function AdminCarEditPage() {
 
     showLoader(); 
     try {
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('condition', condition);
-      formData.append('status', status);
-      formData.append('destinationPrices', JSON.stringify(destinationPrices));
-      
-      formData.append('deletedImages', JSON.stringify(deletedImageIds));
-      formData.append('deletedVideos', JSON.stringify(deletedVideoIds));
+      const payload = {
+        name,
+        condition,
+        status,
+        destinationPrices,
+        terms,
+        deletedImages: deletedImageIds,
+        deletedVideos: deletedVideoIds,
+        images: uploadedNewImages,
+        videos: uploadedNewVideos
+      };
 
-      terms.forEach((t) => formData.append('terms[]', t));
-      
-      selectedFiles.forEach((file) => {
-        formData.append('images', file);
-      });
-
-      selectedVideos.forEach((video) => {
-        formData.append('videos', video);
-      });
-
-      await API.put(`/api/cars/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await API.put(`/api/cars/${id}`, payload);
 
       toast.success('Armada berhasil diperbarui!');
       setTimeout(() => router.push('/admin/cars'), 1000);
@@ -270,7 +286,7 @@ export default function AdminCarEditPage() {
                 {editDestIndex !== null ? '✏️ Sedang Mengedit Rute' : 'Tarif Berdasarkan Tujuan & Layanan'}
               </label>
               {editDestIndex !== null && (
-                <button type="button" onClick={handleCancelEditDest} className="text-xs font-bold text-rose-500 hover:underline">
+                <button type="button" onClick={handleCancelEditDest} className="text-xs font-bold text-rose-500 hover:underline cursor-pointer">
                   Batal Edit
                 </button>
               )}
@@ -312,7 +328,7 @@ export default function AdminCarEditPage() {
                 <button 
                   type="button"
                   onClick={handleAddOrUpdateDestinationPrice}
-                  className={`w-full h-[42px] text-white rounded-xl flex items-center justify-center transition shadow-md ${
+                  className={`w-full h-[42px] text-white rounded-xl flex items-center justify-center transition shadow-md cursor-pointer ${
                     editDestIndex !== null ? 'bg-amber-500 hover:bg-amber-600' : 'bg-indigo-600 hover:bg-indigo-500'
                   }`}
                   title={editDestIndex !== null ? 'Simpan Perubahan' : 'Tambah Tarif Baru'}
@@ -328,7 +344,6 @@ export default function AdminCarEditPage() {
               </p>
             )}
 
-            {/* DAFTAR RUTE */}
             {destinationPrices.length > 0 ? (
               <div className="space-y-2 pt-2">
                 {destinationPrices.map((item, index) => (
@@ -353,18 +368,17 @@ export default function AdminCarEditPage() {
                     </div>
                     
                     <div className="flex items-center gap-4">
-                      {/* Tombol Edit Baru */}
                       <button 
                         type="button" 
                         onClick={() => handleEditDestinationPrice(index)} 
-                        className="text-amber-500 hover:text-amber-600 font-bold flex items-center gap-1"
+                        className="text-amber-500 hover:text-amber-600 font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <Edit2 size={12} /> Edit
                       </button>
                       <button 
                         type="button" 
                         onClick={() => handleRemoveDestinationPrice(index)} 
-                        className="text-rose-500 hover:text-rose-600 font-bold flex items-center gap-1"
+                        className="text-rose-500 hover:text-rose-600 font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <Trash2 size={12} /> Hapus
                       </button>
@@ -401,13 +415,13 @@ export default function AdminCarEditPage() {
             ></textarea>
           </div>
 
-          {/* --- MANAJEMEN FOTO (LAMA & BARU) --- */}
+          {/* --- MANAJEMEN FOTO (LAMA & BARU PRE-UPLOAD) --- */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-xs font-bold uppercase opacity-70 flex items-center gap-1.5">
                 <ImageIcon size={14} className="text-indigo-500" /> Kelola Foto Armada (Maks. 10 File)
               </label>
-              <span className="text-xs font-bold text-indigo-500">{existingImages.length + selectedFiles.length}/10 Total File</span>
+              <span className="text-xs font-bold text-indigo-500">{existingImages.length + uploadedNewImages.length}/10 Total File</span>
             </div>
 
             {existingImages.length > 0 && (
@@ -436,32 +450,35 @@ export default function AdminCarEditPage() {
 
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Upload size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Klik untuk tambah foto baru</span>
+              <span>Klik untuk tambah foto baru (langsung terunggah ke server)</span>
               <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
             </label>
 
-            {previews.length > 0 && (
+            {uploadedNewImages.length > 0 && (
               <div>
-                <p className="text-[11px] font-bold uppercase text-indigo-400 mb-2">Foto Baru yang Akan Ditambahkan:</p>
+                <p className="text-[11px] font-bold uppercase text-indigo-400 mb-2">Foto Baru yang Telah Terunggah:</p>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                  {previews.map((src, index) => (
-                    <div key={index} className="relative group h-32 rounded-2xl overflow-hidden border border-indigo-500 dark:border-indigo-500 bg-slate-900 shadow-md">
-                      <img src={src} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                      <button 
-                        type="button"
-                        onClick={() => handleRemoveFile(index)}
-                        className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition cursor-pointer"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
+                  {uploadedNewImages.map((url, index) => {
+                    const fullImgUrl = url.startsWith('http') ? url : `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+                    return (
+                      <div key={index} className="relative group h-32 rounded-2xl overflow-hidden border border-indigo-500 dark:border-indigo-500 bg-slate-900 shadow-md">
+                        <img src={fullImgUrl} alt={`New Upload ${index}`} className="w-full h-full object-cover" />
+                        <button 
+                          type="button"
+                          onClick={() => handleRemoveNewFile(index)}
+                          className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition cursor-pointer"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </div>
 
-          {/* --- MANAJEMEN VIDEO (LAMA & BARU) --- */}
+          {/* --- MANAJEMEN VIDEO (LAMA & BARU PRE-UPLOAD) --- */}
           <div>
             <label className="block text-xs font-bold uppercase mb-2 opacity-70 flex items-center gap-1.5">
               <Video size={14} className="text-indigo-500" /> Kelola Video Dokumentasi
@@ -474,7 +491,7 @@ export default function AdminCarEditPage() {
                   const vidUrl = vid.videoUrl.startsWith('http') ? vid.videoUrl : `${backendUrl}${vid.videoUrl.startsWith('/') ? '' : '/'}${vid.videoUrl}`;
                   return (
                     <div key={vid.id} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
-                      <video src={vidUrl} controls className="w-full h-full object-cover" />
+                      <video src={vidUrl} controls className="w-full h-full object-contain bg-black" />
                       <button 
                         type="button"
                         onClick={() => handleRemoveExistingVideo(vid.id)}
@@ -490,24 +507,27 @@ export default function AdminCarEditPage() {
 
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Video size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Klik untuk tambah file video baru</span>
+              <span>Klik untuk tambah file video baru (langsung terunggah ke server)</span>
               <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onChange={handleVideoChange} className="hidden" />
             </label>
 
-            {videoPreviews.length > 0 && (
+            {uploadedNewVideos.length > 0 && (
               <div className="grid grid-cols-1 gap-4">
-                {videoPreviews.map((src, index) => (
-                  <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-indigo-500 dark:border-indigo-500 bg-slate-950 shadow-md">
-                    <video src={src} controls className="w-full h-full object-cover" />
-                    <button 
-                      type="button"
-                      onClick={() => handleRemoveVideo(index)}
-                      className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1 cursor-pointer"
-                    >
-                      <X size={14} /> Batal Video Baru
-                    </button>
-                  </div>
-                ))}
+                {uploadedNewVideos.map((url, index) => {
+                  const fullVidUrl = url.startsWith('http') ? url : `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+                  return (
+                    <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-indigo-500 dark:border-indigo-500 bg-slate-950 shadow-md">
+                      <video src={fullVidUrl} controls className="w-full h-full object-contain bg-black" />
+                      <button 
+                        type="button"
+                        onClick={() => handleRemoveNewVideo(index)}
+                        className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1 cursor-pointer"
+                      >
+                        <X size={14} /> Batal Video Baru
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

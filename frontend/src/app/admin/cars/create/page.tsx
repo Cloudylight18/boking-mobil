@@ -24,47 +24,80 @@ export default function AdminCarCreatePage() {
   const [serviceTypeInput, setServiceTypeInput] = useState<'WITH_DRIVER' | 'CARTER_ALL_IN'>('WITH_DRIVER');
   const [priceInput, setPriceInput] = useState('');
 
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-
-  const [selectedVideos, setSelectedVideos] = useState<File[]>([]);
-  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
+  // Menyimpan URL server hasil pre-upload
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedVideos, setUploadedVideos] = useState<string[]>([]);
 
   const [termInput, setTermInput] = useState('');
   const [terms, setTerms] = useState<string[]>([]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+
+  // OTOMATIS UPLOAD FOTO KE SERVER SAAT DIPILIH (Pre-Upload Workflow)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
       
-      if (selectedFiles.length + filesArray.length > 10) {
+      if (uploadedImages.length + filesArray.length > 10) {
         toast.error('Maksimal total foto yang dapat diunggah adalah 10 file.');
         return;
       }
 
-      setSelectedFiles([...selectedFiles, ...filesArray]);
-      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
-      setPreviews([...previews, ...newPreviews]);
+      const formData = new FormData();
+      filesArray.forEach(file => {
+        formData.append('images', file);
+      });
+
+      showLoader();
+      try {
+        const response = await API.post('/api/cars/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (response.data.success && response.data.images) {
+          setUploadedImages(prev => [...prev, ...response.data.images]);
+          toast.success('Foto berhasil diunggah ke server.');
+        }
+      } catch (error) {
+        toast.error('Gagal mengunggah foto ke server.');
+      } finally {
+        hideLoader();
+      }
     }
   };
 
   const handleRemoveFile = (index: number) => {
-    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
-    setPreviews(previews.filter((_, i) => i !== index));
+    setUploadedImages(uploadedImages.filter((_, i) => i !== index));
   };
 
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+  // OTOMATIS UPLOAD VIDEO KE SERVER SAAT DIPILIH (Pre-Upload Workflow)
+  const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
       const videosArray = Array.from(e.target.files);
-      setSelectedVideos([...selectedVideos, ...videosArray]);
-      const newVideoPreviews = videosArray.map(file => URL.createObjectURL(file));
-      setVideoPreviews([...videoPreviews, ...newVideoPreviews]);
+      
+      const formData = new FormData();
+      videosArray.forEach(video => {
+        formData.append('videos', video);
+      });
+
+      showLoader();
+      try {
+        const response = await API.post('/api/cars/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (response.data.success && response.data.videos) {
+          setUploadedVideos(prev => [...prev, ...response.data.videos]);
+          toast.success('Video berhasil diunggah ke server.');
+        }
+      } catch (error) {
+        toast.error('Gagal mengunggah video ke server.');
+      } finally {
+        hideLoader();
+      }
     }
   };
 
   const handleRemoveVideo = (index: number) => {
-    setSelectedVideos(selectedVideos.filter((_, i) => i !== index));
-    setVideoPreviews(videoPreviews.filter((_, i) => i !== index));
+    setUploadedVideos(uploadedVideos.filter((_, i) => i !== index));
   };
 
   const handleAddDestinationPrice = () => {
@@ -91,6 +124,7 @@ export default function AdminCarCreatePage() {
     setTerms(terms.filter((_, i) => i !== index));
   };
 
+  // SUBMIT AKHIR BERUPA JSON (Karena media sudah di-upload sebelumnya)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (destinationPrices.length === 0) {
@@ -100,27 +134,19 @@ export default function AdminCarCreatePage() {
 
     showLoader();
     try {
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('condition', condition);
-      formData.append('status', status);
-      formData.append('destinationPrices', JSON.stringify(destinationPrices));
-      
-      terms.forEach((t) => formData.append('terms[]', t));
-      
-      selectedFiles.forEach((file) => {
-        formData.append('images', file);
-      });
+      const payload = {
+        name,
+        condition,
+        status,
+        destinationPrices,
+        terms,
+        images: uploadedImages,
+        videos: uploadedVideos
+      };
 
-      selectedVideos.forEach((video) => {
-        formData.append('videos', video);
-      });
+      await API.post('/api/cars', payload);
 
-      await API.post('/api/cars', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      toast.success('Armada baru berhasil ditambahkan!');
+      toast.success('Armada baru berhasil disimpan!');
       setTimeout(() => router.push('/admin/cars'), 1000);
     } catch (error) {
       toast.error('Gagal menyimpan armada baru.');
@@ -139,7 +165,7 @@ export default function AdminCarCreatePage() {
             <ArrowLeft size={16} /> Kembali ke Daftar Armada
           </Link>
           <h1 className="text-3xl font-extrabold tracking-tight mt-2">Tambah Armada Mobil Baru</h1>
-          <p className="text-sm opacity-70">Atur tarif tujuan, unggah foto (hingga 10 file) & video galeri resolusi penuh, serta persyaratan sewa.</p>
+          <p className="text-sm opacity-70">Atur tarif tujuan, unggah foto & video galeri (terunggah otomatis secara aman), serta persyaratan sewa.</p>
         </div>
 
         <form onSubmit={handleSubmit} className={`p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -195,7 +221,7 @@ export default function AdminCarCreatePage() {
                 <button 
                   type="button"
                   onClick={handleAddDestinationPrice}
-                  className="w-full h-[42px] bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition shadow-md"
+                  className="w-full h-[42px] bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition shadow-md cursor-pointer"
                   title="Tambah Tarif"
                 >
                   <Plus size={18} />
@@ -218,7 +244,7 @@ export default function AdminCarCreatePage() {
                         <p className="text-indigo-600 dark:text-indigo-400 font-extrabold">{formatRupiah(Number(item.price))}</p>
                       </div>
                     </div>
-                    <button type="button" onClick={() => handleRemoveDestinationPrice(index)} className="text-rose-500 hover:text-rose-600 font-bold">Hapus</button>
+                    <button type="button" onClick={() => handleRemoveDestinationPrice(index)} className="text-rose-500 hover:text-rose-600 font-bold cursor-pointer">Hapus</button>
                   </div>
                 ))}
               </div>
@@ -252,40 +278,43 @@ export default function AdminCarCreatePage() {
             ></textarea>
           </div>
 
-          {/* Unggah Foto Mobil (Maksimal 10 File) */}
+          {/* Unggah Foto Mobil (Otomatis Upload ke Server saat dipilih) */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-xs font-bold uppercase opacity-70 flex items-center gap-1.5">
                 <ImageIcon size={14} className="text-indigo-500" /> Unggah Foto Mobil (Maks. 10 File)
               </label>
-              <span className="text-xs font-bold text-indigo-500">{selectedFiles.length}/10 File terpilih</span>
+              <span className="text-xs font-bold text-indigo-500">{uploadedImages.length}/10 File terunggah</span>
             </div>
             
             <label className="flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-400 dark:border-slate-600 hover:border-indigo-500 cursor-pointer bg-slate-100 dark:bg-slate-950/40 text-sm transition mb-4">
               <Upload size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <span>Klik untuk pilih foto (bisa banyak sekaligus)</span>
+              <span>Klik untuk pilih foto (langsung terunggah ke server)</span>
               <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
             </label>
 
-            {previews.length > 0 && (
+            {uploadedImages.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                {previews.map((src, index) => (
-                  <div key={index} className="relative group h-32 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900 shadow-md">
-                    <img src={src} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                    <button 
-                      type="button"
-                      onClick={() => handleRemoveFile(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
+                {uploadedImages.map((url, index) => {
+                  const fullImgUrl = url.startsWith('http') ? url : `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+                  return (
+                    <div key={index} className="relative group h-32 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900 shadow-md">
+                      <img src={fullImgUrl} alt={`Uploaded ${index}`} className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => handleRemoveFile(index)}
+                        className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow transition cursor-pointer"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* Unggah Video Mobil (Tampilan Full Resolusi Cover) */}
+          {/* Unggah Video Mobil (Otomatis Upload ke Server saat dipilih) */}
           <div>
             <label className="block text-xs font-bold uppercase mb-2 opacity-70 flex items-center gap-1.5">
               <Video size={14} className="text-indigo-500" /> Unggah Video Mobil (Resolusi Full Cover)
@@ -296,20 +325,23 @@ export default function AdminCarCreatePage() {
               <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onChange={handleVideoChange} className="hidden" />
             </label>
 
-            {videoPreviews.length > 0 && (
+            {uploadedVideos.length > 0 && (
               <div className="grid grid-cols-1 gap-4">
-                {videoPreviews.map((src, index) => (
-                  <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
-                    <video src={src} controls className="w-full h-full object-cover" />
-                    <button 
-                      type="button"
-                      onClick={() => handleRemoveVideo(index)}
-                      className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1"
-                    >
-                      <X size={14} /> Hapus Video
-                    </button>
-                  </div>
-                ))}
+                {uploadedVideos.map((url, index) => {
+                  const fullVidUrl = url.startsWith('http') ? url : `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+                  return (
+                    <div key={index} className="relative group h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-md">
+                      <video src={fullVidUrl} controls className="w-full h-full object-contain bg-black" />
+                      <button 
+                        type="button"
+                        onClick={() => handleRemoveVideo(index)}
+                        className="absolute top-3 right-3 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition z-10 flex items-center gap-1 cursor-pointer"
+                      >
+                        <X size={14} /> Hapus Video
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -327,7 +359,7 @@ export default function AdminCarCreatePage() {
               <button 
                 type="button" 
                 onClick={handleAddTerm}
-                className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-500 transition shadow-md"
+                className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-500 transition shadow-md cursor-pointer"
               >
                 Tambah Syarat
               </button>
@@ -336,7 +368,7 @@ export default function AdminCarCreatePage() {
               {terms.map((term, index) => (
                 <li key={index} className="flex justify-between items-center bg-slate-100 dark:bg-slate-900/80 px-4 py-2.5 rounded-xl text-xs border border-slate-200 dark:border-slate-700">
                   <span>{index + 1}. {term}</span>
-                  <button type="button" onClick={() => handleRemoveTerm(index)} className="text-rose-500 font-bold">Hapus</button>
+                  <button type="button" onClick={() => handleRemoveTerm(index)} className="text-rose-500 font-bold cursor-pointer">Hapus</button>
                 </li>
               ))}
             </ul>

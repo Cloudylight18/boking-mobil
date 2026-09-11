@@ -2,7 +2,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Diselaraskan agar folder uploads berada di root/public/uploads
+// Direktori penyimpanan file di folder public/uploads
 const uploadDir = path.join(__dirname, '../../public/uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -31,14 +31,14 @@ const fileFilter = (req, file, cb) => {
   if (isImage || isVideo) {
     return cb(null, true);
   } else {
-    cb(new Error('Ekstensi file atau MimeType tidak valid! Hanya JPG, PNG, WEBP, MP4, MOV, WEBM, dan MKV yang diizinkan.'));
+    cb(new Error('Format file tidak valid! Hanya format Gambar (JPG, PNG, WEBP) dan Video (MP4, MOV, WEBM, MKV) yang diizinkan.'));
   }
 };
 
 const upload = multer({ 
   storage: storage,
   limits: { 
-    fileSize: 50 * 1024 * 1024, // 50MB per file
+    fileSize: 50 * 1024 * 1024, // Maksimal 50MB per file
     files: 10 // Maksimal 10 file sekaligus
   }, 
   fileFilter: fileFilter

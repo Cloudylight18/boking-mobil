@@ -11,6 +11,7 @@ const uploadFields = upload.fields([
 
 // Endpoint Manajemen Armada
 router.get('/', carController.getCars);
+router.post('/upload', uploadFields, carController.uploadMedia); // Endpoint Pre-Upload Terpisah
 router.post('/', uploadFields, carController.createCar);
 router.put('/:id', uploadFields, carController.updateCar);
 router.delete('/:id', carController.deleteCar);

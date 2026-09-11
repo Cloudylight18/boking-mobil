@@ -21,10 +21,37 @@ exports.getCars = async (req, res) => {
   }
 };
 
-// POST: Tambah mobil baru
+// POST: Endpoint khusus untuk Pra-Unggah Media (Pre-Upload ala Instagram)
+exports.uploadMedia = async (req, res) => {
+  try {
+    let uploadedImages = [];
+    let uploadedVideos = [];
+
+    if (req.files) {
+      if (req.files['images'] && req.files['images'].length > 0) {
+        uploadedImages = req.files['images'].map(file => `/uploads/${file.filename}`);
+      }
+      if (req.files['videos'] && req.files['videos'].length > 0) {
+        uploadedVideos = req.files['videos'].map(file => `/uploads/${file.filename}`);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Media berhasil diunggah ke server',
+      images: uploadedImages,
+      videos: uploadedVideos
+    });
+  } catch (error) {
+    console.error("ERROR UPLOAD MEDIA:", error);
+    res.status(500).json({ success: false, message: 'Gagal mengunggah media', detail: error.message });
+  }
+};
+
+// POST: Tambah mobil baru (Menerima JSON data yang bersih dari pre-upload)
 exports.createCar = async (req, res) => {
   try {
-    const { name, condition, status, destinationPrices, images, videos } = req.body;
+    const { name, condition, status, destinationPrices, terms, images, videos } = req.body;
     
     let parsedDestinationPrices = [];
     if (destinationPrices) {
@@ -36,28 +63,18 @@ exports.createCar = async (req, res) => {
     }
 
     let termsArray = [];
-    if (req.body['terms[]']) {
-      termsArray = Array.isArray(req.body['terms[]']) ? req.body['terms[]'] : [req.body['terms[]']];
-    } else if (req.body.terms) {
-      termsArray = Array.isArray(req.body.terms) ? req.body.terms : [req.body.terms];
+    if (terms) {
+      termsArray = Array.isArray(terms) ? terms : [terms];
     }
 
     let imageCreateData = [];
     if (images && Array.isArray(images)) {
       imageCreateData = images.map(url => ({ imageUrl: url }));
-    } else if (req.files && req.files['images'] && req.files['images'].length > 0) {
-      imageCreateData = req.files['images'].map(file => ({
-        imageUrl: `/uploads/${file.filename}`
-      }));
     }
 
     let videoCreateData = [];
     if (videos && Array.isArray(videos)) {
       videoCreateData = videos.map(url => ({ videoUrl: url }));
-    } else if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
-      videoCreateData = req.files['videos'].map(file => ({
-        videoUrl: `/uploads/${file.filename}`
-      }));
     }
 
     const newCar = await prisma.car.create({
@@ -88,11 +105,11 @@ exports.createCar = async (req, res) => {
   }
 };
 
-// PUT: Update mobil berdasarkan ID (Dengan Universal Parser untuk Hapus Foto/Video)
+// PUT: Update mobil berdasarkan ID
 exports.updateCar = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, condition, status, destinationPrices } = req.body;
+    const { name, condition, status, destinationPrices, terms, images, videos, deletedImages, deletedVideos } = req.body;
 
     let parsedDestinationPrices = [];
     if (destinationPrices) {
@@ -104,25 +121,17 @@ exports.updateCar = async (req, res) => {
     }
 
     let termsArray = [];
-    if (req.body['terms[]']) {
-      termsArray = Array.isArray(req.body['terms[]']) ? req.body['terms[]'] : [req.body['terms[]']];
-    } else if (req.body.terms) {
-      termsArray = Array.isArray(req.body.terms) ? req.body.terms : [req.body.terms];
+    if (terms) {
+      termsArray = Array.isArray(terms) ? terms : [terms];
     }
 
-    // --- UNIVERSAL PARSER UNTUK HAPUS FOTO ---
-    let deletedImagesArray = [];
-    const rawDelImg = req.body.deletedImages || req.body['deletedImages[]'];
-    if (rawDelImg) {
-      try {
-        deletedImagesArray = typeof rawDelImg === 'string' ? JSON.parse(rawDelImg) : rawDelImg;
-        if (!Array.isArray(deletedImagesArray)) deletedImagesArray = [deletedImagesArray];
-      } catch (e) {
-        deletedImagesArray = Array.isArray(rawDelImg) ? rawDelImg : [rawDelImg];
-      }
+    // Hapus file fisik gambar yang ditandai untuk dihapus
+    let deletedImagesArray = deletedImages || [];
+    if (typeof deletedImagesArray === 'string') {
+      try { deletedImagesArray = JSON.parse(deletedImagesArray); } catch(e) { deletedImagesArray = [deletedImagesArray]; }
     }
 
-    if (deletedImagesArray.length > 0) {
+    if (Array.isArray(deletedImagesArray) && deletedImagesArray.length > 0) {
       for (const imgId of deletedImagesArray) {
         try {
           const imgRecord = await prisma.carImage.findUnique({ where: { id: imgId } });
@@ -130,9 +139,7 @@ exports.updateCar = async (req, res) => {
             if (imgRecord.imageUrl.startsWith('/uploads/')) {
               const cleanPath = imgRecord.imageUrl.replace(/^\/+/, '');
               const filePath = path.join(__dirname, '../../public', cleanPath);
-              if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-              }
+              if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
             }
             await prisma.carImage.delete({ where: { id: imgId } });
           }
@@ -142,19 +149,13 @@ exports.updateCar = async (req, res) => {
       }
     }
 
-    // --- UNIVERSAL PARSER UNTUK HAPUS VIDEO ---
-    let deletedVideosArray = [];
-    const rawDelVid = req.body.deletedVideos || req.body['deletedVideos[]'];
-    if (rawDelVid) {
-      try {
-        deletedVideosArray = typeof rawDelVid === 'string' ? JSON.parse(rawDelVid) : rawDelVid;
-        if (!Array.isArray(deletedVideosArray)) deletedVideosArray = [deletedVideosArray];
-      } catch (e) {
-        deletedVideosArray = Array.isArray(rawDelVid) ? rawDelVid : [rawDelVid];
-      }
+    // Hapus file fisik video yang ditandai untuk dihapus
+    let deletedVideosArray = deletedVideos || [];
+    if (typeof deletedVideosArray === 'string') {
+      try { deletedVideosArray = JSON.parse(deletedVideosArray); } catch(e) { deletedVideosArray = [deletedVideosArray]; }
     }
 
-    if (deletedVideosArray.length > 0) {
+    if (Array.isArray(deletedVideosArray) && deletedVideosArray.length > 0) {
       for (const vidId of deletedVideosArray) {
         try {
           const vidRecord = await prisma.carVideo.findUnique({ where: { id: vidId } });
@@ -162,9 +163,7 @@ exports.updateCar = async (req, res) => {
             if (vidRecord.videoUrl.startsWith('/uploads/')) {
               const cleanPath = vidRecord.videoUrl.replace(/^\/+/, '');
               const filePath = path.join(__dirname, '../../public', cleanPath);
-              if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-              }
+              if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
             }
             await prisma.carVideo.delete({ where: { id: vidId } });
           }
@@ -175,7 +174,7 @@ exports.updateCar = async (req, res) => {
     }
 
     // Update data utama mobil, rute tujuan, & syarat
-    const updatedCar = await prisma.car.update({
+    await prisma.car.update({
       where: { id },
       data: {
         name,
@@ -193,30 +192,23 @@ exports.updateCar = async (req, res) => {
           deleteMany: {},
           create: termsArray.map(desc => ({ description: desc }))
         }
-      },
-      include: { images: true, videos: true, destinationPrices: true, terms: true }
+      }
     });
 
-    // Tambah foto baru jika di-upload
-    if (req.files && req.files['images'] && req.files['images'].length > 0) {
-      for (const file of req.files['images']) {
+    // Tambah foto baru hasil pre-upload URL
+    if (images && Array.isArray(images) && images.length > 0) {
+      for (const imgUrl of images) {
         await prisma.carImage.create({
-          data: {
-            carId: id,
-            imageUrl: `/uploads/${file.filename}`
-          }
+          data: { carId: id, imageUrl: imgUrl }
         });
       }
     }
 
-    // Tambah video baru jika di-upload
-    if (req.files && req.files['videos'] && req.files['videos'].length > 0) {
-      for (const file of req.files['videos']) {
+    // Tambah video baru hasil pre-upload URL
+    if (videos && Array.isArray(videos) && videos.length > 0) {
+      for (const vidUrl of videos) {
         await prisma.carVideo.create({
-          data: {
-            carId: id,
-            videoUrl: `/uploads/${file.filename}`
-          }
+          data: { carId: id, videoUrl: vidUrl }
         });
       }
     }
@@ -246,9 +238,7 @@ exports.deleteCar = async (req, res) => {
         if (img.imageUrl.startsWith('/uploads/')) {
           const cleanPath = img.imageUrl.replace(/^\/+/, '');
           const filePath = path.join(__dirname, '../../public', cleanPath);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
       } catch (err) {}
     });
@@ -258,9 +248,7 @@ exports.deleteCar = async (req, res) => {
         if (vid.videoUrl.startsWith('/uploads/')) {
           const cleanPath = vid.videoUrl.replace(/^\/+/, '');
           const filePath = path.join(__dirname, '../../public', cleanPath);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
       } catch (err) {}
     });
@@ -276,10 +264,6 @@ exports.deleteCar = async (req, res) => {
     res.status(200).json({ success: true, message: 'Mobil berhasil dihapus' });
   } catch (error) {
     console.error("ERROR DELETE CAR:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Gagal menghapus mobil', 
-      detail: error.message 
-    });
+    res.status(500).json({ success: false, message: 'Gagal menghapus mobil', detail: error.message });
   }
 };

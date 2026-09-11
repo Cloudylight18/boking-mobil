@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MessageCircle, ArrowLeft, CheckCircle2, Moon, Sun, Navigation, Video } from 'lucide-react';
+import { MessageCircle, ArrowLeft, CheckCircle2, Moon, Sun, Navigation, Video, Maximize2, X } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
@@ -44,6 +44,7 @@ interface CarDetail {
 
 export default function DetailMobilPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id;
   const { showLoader, hideLoader } = useLoading();
 
@@ -51,6 +52,9 @@ export default function DetailMobilPage() {
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'description' | 'terms'>('description');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // State untuk Popup Modal Video Fullscreen
+  const [activeVideoPopup, setActiveVideoPopup] = useState<string | null>(null);
   
   // Default awal dimulai dari mode Terang (Light Mode)
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -101,7 +105,7 @@ export default function DetailMobilPage() {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center gap-4 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}>
         <p>Mobil tidak ditemukan.</p>
-        <Link href="/" className="text-indigo-600 dark:text-indigo-400 underline font-semibold">Kembali ke Katalog</Link>
+        <Link href="/?tab=katalog" className="text-indigo-600 dark:text-indigo-400 underline font-semibold">Kembali ke Katalog</Link>
       </div>
     );
   }
@@ -117,9 +121,12 @@ export default function DetailMobilPage() {
     <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
       <Toaster position="top-right" />
 
-      {/* Top Navigation & Dark Mode Toggle */}
+      {/* Top Navigation & Dark Mode Toggle - Mengarahkan kembali langsung ke Katalog */}
       <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
-        <Link href="/" className={`inline-flex items-center gap-2 text-sm transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>
+        <Link 
+          href="/?tab=katalog" 
+          className={`inline-flex items-center gap-2 text-sm font-semibold transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}
+        >
           <ArrowLeft size={16} /> Kembali ke Katalog
         </Link>
         <button 
@@ -182,8 +189,27 @@ export default function DetailMobilPage() {
                     ? vid.videoUrl 
                     : `${backendUrl}${vid.videoUrl.startsWith('/') ? '' : '/'}${vid.videoUrl}`;
                   return (
-                    <div key={vid.id} className="h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-xl">
-                      <video src={vidUrl} controls className="w-full h-full object-cover" />
+                    <div 
+                      key={vid.id} 
+                      className="group relative h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-xl"
+                    >
+                      {/* Video Player dengan object-contain agar murni tidak terpotong */}
+                      <video 
+                        src={vidUrl} 
+                        controls 
+                        preload="metadata"
+                        playsInline
+                        className="w-full h-full object-contain bg-black" 
+                      />
+                      
+                      {/* Tombol Klik Popup Perbesar Video */}
+                      <button 
+                        onClick={() => setActiveVideoPopup(vidUrl)}
+                        className="absolute top-4 right-4 bg-slate-900/80 hover:bg-emerald-600 text-white p-3 rounded-2xl backdrop-blur-md transition-all duration-300 shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer opacity-90 group-hover:opacity-100"
+                        title="Perbesar Video"
+                      >
+                        <Maximize2 size={16} /> Perbesar Layar
+                      </button>
                     </div>
                   );
                 })}
@@ -288,6 +314,32 @@ export default function DetailMobilPage() {
           )}
         </div>
       </section>
+
+      {/* POPUP MODAL VIDEO FULLSCREEN (IG/Shorts Style) */}
+      {activeVideoPopup && (
+        <div className="fixed inset-0 z-[99999] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
+          <div className="relative w-full max-w-5xl h-[80vh] bg-black rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex items-center justify-center">
+            
+            {/* Tombol Close Popup */}
+            <button 
+              onClick={() => setActiveVideoPopup(null)}
+              className="absolute top-4 right-4 z-50 bg-slate-900/80 hover:bg-rose-600 text-white p-3 rounded-full transition-all duration-300 shadow-lg cursor-pointer"
+              title="Tutup"
+            >
+              <X size={22} />
+            </button>
+
+            {/* Video Player Fullscreen Murni */}
+            <video 
+              src={activeVideoPopup} 
+              controls 
+              autoPlay
+              playsInline
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
