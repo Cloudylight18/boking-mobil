@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './ecommer/components/navbar';
@@ -12,29 +11,12 @@ import LocationContact from './ecommer/components/LocationContact';
 import Footer from './ecommer/components/Footer';
 import WhatsAppFloat from './ecommer/components/WhatsAppFloat';
 import HitsbahAIModal from './ecommer/components/HitsbahAIModal';
-import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
 
 export default function PublicCatalog() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isHitsbahAIOpen, setIsHitsbahAIOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const { showLoader, hideLoader } = useLoading();
-
-  useEffect(() => {
-    const handleInitialLoad = async () => {
-      showLoader(); // Nyalakan global loading logo Hitsbah berputar saat halaman dibuka
-      try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
-        await axios.post(`${backendUrl}/api/dashboard/visit`);
-      } catch (error) {
-        // Abaikan error
-      } finally {
-        hideLoader(); // Matikan loading setelah selesai
-      }
-    };
-    handleInitialLoad();
-  }, []);
 
   return (
     <div className={`min-h-screen font-sans transition-colors duration-500 flex flex-col justify-between overflow-x-hidden ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
