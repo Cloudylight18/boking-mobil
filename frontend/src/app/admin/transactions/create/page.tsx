@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, Car as CarIcon } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, FileText, Car as CarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
@@ -57,6 +57,9 @@ export default function AdminTransactionCreatePage() {
   const [travelDate, setTravelDate] = useState('');
   const [durationDays, setDurationDays] = useState<string>('1'); 
   const [shiftTime, setShiftTime] = useState('');
+
+  // State Catatan Manual Transaksi
+  const [notes, setNotes] = useState('Harap melunasi sisa pembayaran sebelum perjalanan dimulai atau kepada supir bertugas.');
   
   const [basePrice, setBasePrice] = useState<number>(0);
   const [discountInput, setDiscountInput] = useState<string>('0'); 
@@ -237,12 +240,12 @@ export default function AdminTransactionCreatePage() {
     try {
       await API.post('/api/transactions', {
         customerName,
-        customerPhone, // Menyimpan nomor HP pemesan
+        customerPhone,
         address,
         carName: finalCarName,
         destination: finalDestName,
-        driverName,   // Menyimpan nama supir
-        driverPhone,  // Menyimpan nomor HP supir
+        driverName,
+        driverPhone,
         travelDate,
         durationDays: daysNum,
         dateDetails: generateDateDetails(),
@@ -250,7 +253,8 @@ export default function AdminTransactionCreatePage() {
         discountAmount: discountInput === '' ? 0 : Number(discountInput),
         dpAmount: dpAmount === '' ? 0 : Number(dpAmount),
         remainingPay: remainingPay,
-        serviceType: finalServiceType
+        serviceType: finalServiceType,
+        notes // Menyimpan catatan manual nota
       });
 
       toast.success('Nota transaksi POS berhasil dibuat!');
@@ -278,7 +282,7 @@ export default function AdminTransactionCreatePage() {
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">Buat Nota POS Travel & Rental</h1>
           <p className={`text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            Catat pemesanan perjalanan lengkap dengan informasi driver, kontak pelanggan, rute, dan kalkulasi otomatis.
+            Catat pemesanan perjalanan lengkap dengan informasi driver, kontak pelanggan, rute, catatan manual, dan kalkulasi otomatis.
           </p>
         </div>
 
@@ -357,7 +361,6 @@ export default function AdminTransactionCreatePage() {
 
           {/* Pemilihan Armada & Rute */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-200 dark:border-slate-800">
-            {/* Armada Mobil */}
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -396,7 +399,6 @@ export default function AdminTransactionCreatePage() {
               )}
             </div>
 
-            {/* Rute Tujuan */}
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -604,6 +606,20 @@ export default function AdminTransactionCreatePage() {
               />
               <p className="text-xs text-rose-600 dark:text-rose-400 font-bold mt-1">Format: {formatRupiah(remainingPay)}</p>
             </div>
+          </div>
+
+          {/* Input Catatan Nota Manual */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+            <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+              <FileText size={14} className="text-indigo-500" /> Catatan Nota (Tampil di Lembar Cetak)
+            </label>
+            <textarea 
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Masukkan instruksi atau catatan khusus untuk nota ini..."
+              className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+            />
           </div>
 
           <div className="pt-6 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-slate-200 dark:border-slate-800">

@@ -78,12 +78,12 @@ model RentalTerm {
 model Transaction {
   id             String   @id @default(uuid())
   customerName   String
-  customerPhone  String?  // <-- Ditambahkan untuk menyimpan Nomor HP / WhatsApp Pemesan
+  customerPhone  String?  // Nomor HP / WhatsApp Pemesan
   address        String
   carName        String
   destination    String
-  driverName     String?  // <-- Ditambahkan untuk menyimpan Nama Driver / Supir bertugas
-  driverPhone    String?  // <-- Ditambahkan untuk menyimpan Nomor HP / WhatsApp Driver
+  driverName     String?  // Nama Driver / Supir bertugas
+  driverPhone    String?  // Nomor HP / WhatsApp Driver
   travelDate     String   // Tanggal mulai keberangkatan
   durationDays   Int      @default(1) // Lama waktu sewa dalam hari (misal: 3 hari)
   dateDetails    String?  @db.Text    // Rincian tanggal apa saja
@@ -92,6 +92,7 @@ model Transaction {
   dpAmount       Int      @default(0)
   remainingPay   Int      @default(0)
   serviceType    String   // Menyimpan jenis layanan yang dipilih
+  notes          String?  @db.Text    // <-- [BARU] Menyimpan catatan manual nota cetak
   createdAt      DateTime @default(now())
 }
 

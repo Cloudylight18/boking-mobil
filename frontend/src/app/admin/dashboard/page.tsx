@@ -133,9 +133,24 @@ export default function DashboardAdmin() {
     year: 'numeric',
   }) : '';
 
+  // Filter transaksi berdasarkan rentang tanggal perjalanan (memperhitungkan durationDays)
   const filteredTransactions = transactions.filter(tx => {
     if (!selectedDateStr) return true;
-    return tx.travelDate === selectedDateStr;
+    
+    const startStr = tx.travelDate;
+    const duration = tx.durationDays && tx.durationDays > 0 ? tx.durationDays : 1;
+    const start = new Date(startStr);
+    if (isNaN(start.getTime())) return startStr === selectedDateStr;
+
+    for (let i = 0; i < duration; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const dStr = d.toISOString().split('T')[0];
+      if (dStr === selectedDateStr) {
+        return true;
+      }
+    }
+    return false;
   });
 
   // Mendapatkan nominal pendapatan berdasarkan bulan yang dipilih di dropdown tracking
@@ -231,7 +246,7 @@ export default function DashboardAdmin() {
                       <CalendarDays size={18} className="text-indigo-500" /> Tracking Bulanan
                     </h3>
                     
-                    {/* Dropdown Pilihan Bulan (Mulai Januari s.d Desember, termasuk September) */}
+                    {/* Dropdown Pilihan Bulan (Mulai Januari s.d Desember) */}
                     <select
                       value={selectedTrackingMonth}
                       onChange={(e) => setSelectedTrackingMonth(Number(e.target.value))}
@@ -294,26 +309,54 @@ export default function DashboardAdmin() {
 
               <div className="space-y-3">
                 {filteredTransactions.length > 0 ? (
-                  filteredTransactions.map((tx) => (
-                    <div key={tx.id} className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition hover:border-indigo-500/40">
-                      <div className="space-y-1.5 sm:space-y-1 w-full sm:w-auto">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-bold font-mono border border-indigo-500/20">
-                            📅 {tx.travelDate}
-                          </span>
-                          <span className="text-[10px] sm:text-xs font-semibold opacity-70">({tx.durationDays || 1} Hari)</span>
+                  filteredTransactions.map((tx) => {
+                    // Tentukan keterangan status hari ke-berapa atau keterangan perjalanan berdasarkan selectedDateStr
+                    let tripStatusLabel = '';
+                    if (selectedDateStr) {
+                      const start = new Date(tx.travelDate);
+                      const target = new Date(selectedDateStr);
+                      const diffTime = target.getTime() - start.getTime();
+                      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                      const duration = tx.durationDays || 1;
+
+                      if (diffDays === 0) {
+                        tripStatusLabel = '🚀 Berangkat';
+                      } else if (diffDays === duration - 1 && duration > 1) {
+                        tripStatusLabel = '🏁 Menuju Pulang / Selesai';
+                      } else if (diffDays > 0 && diffDays < duration - 1) {
+                        tripStatusLabel = '🛣️ Dalam Perjalanan';
+                      } else {
+                        tripStatusLabel = `Hari ke-${diffDays + 1}`;
+                      }
+                    } else {
+                      tripStatusLabel = `Durasi: ${tx.durationDays || 1} Hari`;
+                    }
+
+                    return (
+                      <div key={tx.id} className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition hover:border-indigo-500/40">
+                        <div className="space-y-1.5 sm:space-y-1 w-full sm:w-auto">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-bold font-mono border border-indigo-500/20">
+                              📅 Start: {tx.travelDate} ({tx.durationDays || 1} Hari)
+                            </span>
+                            {selectedDateStr && (
+                              <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-extrabold border border-emerald-500/20">
+                                {tripStatusLabel}
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-bold text-xs sm:text-sm flex flex-wrap items-center gap-1.5 mt-1">
+                            <User size={13} className="text-emerald-500" /> {tx.customerName} <span className="hidden sm:inline">—</span> <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{tx.carName}</span>
+                          </p>
                         </div>
-                        <p className="font-bold text-xs sm:text-sm flex flex-wrap items-center gap-1.5 mt-1">
-                          <User size={13} className="text-emerald-500" /> {tx.customerName} <span className="hidden sm:inline">—</span> <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{tx.carName}</span>
-                        </p>
+                        <div className="w-full sm:w-auto text-left sm:text-right flex items-center sm:justify-end gap-2 mt-1 sm:mt-0">
+                          <span className="w-full sm:w-auto text-[11px] sm:text-xs font-bold flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-2 rounded-xl sm:rounded-2xl border border-emerald-500/20">
+                            <MapPin size={12} className="shrink-0" /> <span className="truncate">Tujuan: {tx.destination}</span>
+                          </span>
+                        </div>
                       </div>
-                      <div className="w-full sm:w-auto text-left sm:text-right flex items-center sm:justify-end gap-2 mt-1 sm:mt-0">
-                        <span className="w-full sm:w-auto text-[11px] sm:text-xs font-bold flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-2 rounded-xl sm:rounded-2xl border border-emerald-500/20">
-                          <MapPin size={12} className="shrink-0" /> <span className="truncate">Tujuan: {tx.destination}</span>
-                        </span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="text-[11px] sm:text-xs opacity-50 text-center py-6 sm:py-8">Tidak ada jadwal keberangkatan pada tanggal {selectedDateStr || 'ini'}.</p>
                 )}
@@ -367,7 +410,22 @@ export default function DashboardAdmin() {
                   const formattedMonth = (month + 1) < 10 ? `0${month + 1}` : `${month + 1}`;
                   const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
 
-                  const hasBooking = transactions.some(tx => tx.travelDate === dateStr);
+                  // Memeriksa apakah tanggal ini berada dalam rentang perjalanan (start date + durationDays)
+                  const hasBooking = transactions.some(tx => {
+                    const startStr = tx.travelDate;
+                    const duration = tx.durationDays && tx.durationDays > 0 ? tx.durationDays : 1;
+                    const start = new Date(startStr);
+                    if (isNaN(start.getTime())) return startStr === dateStr;
+
+                    for (let dIdx = 0; dIdx < duration; dIdx++) {
+                      const d = new Date(start);
+                      d.setDate(start.getDate() + dIdx);
+                      const dStr = d.toISOString().split('T')[0];
+                      if (dStr === dateStr) return true;
+                    }
+                    return false;
+                  });
+
                   const isSelected = selectedDateStr === dateStr;
                   const isToday = new Date().toISOString().split('T')[0] === dateStr;
 

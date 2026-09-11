@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, Car as CarIcon } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, FileText, Car as CarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
@@ -60,6 +60,9 @@ export default function AdminTransactionEditPage() {
   const [travelDate, setTravelDate] = useState('');
   const [durationDays, setDurationDays] = useState<string>('1'); 
   const [shiftTime, setShiftTime] = useState('');
+
+  // State Catatan Manual Transaksi
+  const [notes, setNotes] = useState('');
   
   const [basePrice, setBasePrice] = useState<number>(0);
   const [discountInput, setDiscountInput] = useState<string>('0'); 
@@ -93,6 +96,7 @@ export default function AdminTransactionEditPage() {
           setShiftTime(found.shiftTime);
           setDpAmount(found.dpAmount != null ? String(found.dpAmount) : '');
           setDiscountInput(String(found.discountAmount || 0)); 
+          setNotes(found.notes || '');
 
           let isServiceCustom = false;
 
@@ -329,7 +333,8 @@ export default function AdminTransactionEditPage() {
         discountAmount: discountInput === '' ? 0 : Number(discountInput),
         dpAmount: dpAmount === '' ? 0 : Number(dpAmount),
         remainingPay: remainingPay,
-        serviceType: finalServiceType
+        serviceType: finalServiceType,
+        notes // Menyimpan catatan manual nota
       });
 
       toast.success('Nota transaksi berhasil diperbarui!');
@@ -360,7 +365,7 @@ export default function AdminTransactionEditPage() {
             <ArrowLeft size={16} /> Kembali ke Daftar Transaksi
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">Edit Nota POS Travel</h1>
-          <p className="text-xs sm:text-sm opacity-70 mt-1">Perbarui rincian nota transaksi perjalanan, driver, dan kontak pelanggan.</p>
+          <p className="text-xs sm:text-sm opacity-70 mt-1">Perbarui rincian nota transaksi perjalanan, driver, kontak pelanggan, dan catatan.</p>
         </div>
 
         <form onSubmit={handleSubmit} className={`p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -675,6 +680,20 @@ export default function AdminTransactionEditPage() {
               />
               <p className="text-xs text-rose-600 dark:text-rose-400 font-bold mt-1">Format: {formatRupiah(remainingPay || 0)}</p>
             </div>
+          </div>
+
+          {/* Input Catatan Nota Manual pada Edit */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+            <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
+              <FileText size={14} className="text-indigo-500" /> Catatan Nota (Tampil di Lembar Cetak)
+            </label>
+            <textarea 
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Masukkan instruksi atau catatan khusus untuk nota ini..."
+              className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+            />
           </div>
 
           <div className="pt-6 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-slate-200 dark:border-slate-800">

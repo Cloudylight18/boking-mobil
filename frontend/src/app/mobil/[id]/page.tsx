@@ -60,7 +60,7 @@ export default function DetailMobilPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan gambar dan video
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingsite.com';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
 
   useEffect(() => {
     if (!id) return;
@@ -105,7 +105,7 @@ export default function DetailMobilPage() {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center gap-4 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}>
         <p>Mobil tidak ditemukan.</p>
-        <Link href="/?tab=katalog" className="text-indigo-600 dark:text-indigo-400 underline font-semibold">Kembali ke Katalog</Link>
+        <Link href="/?tab=katalog#katalog" className="text-indigo-600 dark:text-indigo-400 underline font-semibold">Kembali ke Katalog</Link>
       </div>
     );
   }
@@ -121,10 +121,10 @@ export default function DetailMobilPage() {
     <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
       <Toaster position="top-right" />
 
-      {/* Top Navigation & Dark Mode Toggle - Mengarahkan kembali langsung ke Katalog dengan parameter query tab */}
+      {/* Top Navigation & Dark Mode Toggle - Mengarahkan kembali langsung ke Katalog dengan tab & anchor #katalog */}
       <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
         <Link 
-          href="/?tab=katalog" 
+          href="/?tab=katalog#katalog" 
           className={`inline-flex items-center gap-2 text-sm font-semibold transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}
         >
           <ArrowLeft size={16} /> Kembali ke Katalog

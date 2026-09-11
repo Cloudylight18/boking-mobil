@@ -27,6 +27,7 @@ interface TransactionItem {
   remainingPay: number;
   discountAmount?: number;
   serviceType: string;
+  notes?: string; // Menampung data catatan manual
   createdAt: string;
 }
 
@@ -334,11 +335,11 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Bagian Catatan & Hormat Kami */}
+        {/* Bagian Catatan Manual & Hormat Kami */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 pt-6 border-t border-slate-200 text-xs text-slate-600 mb-8">
           <div>
-            <p className="font-bold mb-1 text-slate-900">Catatan Penting:</p>
-            <p className="max-w-xs">Harap melunasi sisa pembayaran sebelum perjalanan dimulai atau kepada supir bertugas.</p>
+            <p className="font-bold mb-1 text-slate-900">Catatan:</p>
+            <p className="max-w-xs whitespace-pre-line">{tx.notes || '-'}</p>
           </div>
           <div className="text-left sm:text-center w-full sm:w-auto">
             <p className="mb-2 font-medium">Hormat Kami,</p>
