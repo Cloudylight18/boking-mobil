@@ -402,7 +402,7 @@ export default function DashboardAdmin() {
             <div className="p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
-                  <Users size={16} className="text-indigo-500" /> Analitik Toko
+                  <Users size={16} className="text-indigo-500" /> Analisis pengujung website e-commerce
                 </h3>
                 <div className="flex items-center gap-3">
                   <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Sistem Aktif"></span>

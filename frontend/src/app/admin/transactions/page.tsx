@@ -5,8 +5,8 @@ import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigatio
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { formatRupiah } from '@/app/utils/formatRupiah';
-import { API } from '@/app/utils/api'; // Menggunakan instance API global
-import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
+import { API } from '@/app/utils/api'; 
+import { useLoading } from '@/app/context/LoadingContext'; 
 
 interface TransactionItem {
   id: string;
@@ -23,7 +23,7 @@ interface TransactionItem {
   shiftTime: string;
   dpAmount: number;
   remainingPay: number;
-  discountAmount?: number; // Ditambahkan untuk integrasi fitur diskon Rupiah
+  discountAmount?: number; 
   serviceType: string;
   createdAt: string;
 }
@@ -99,33 +99,39 @@ export default function AdminTransactionsPage() {
         </Link>
       </div>
 
-      {/* Quick Financial Stats Cards */}
+      {/* Quick Financial Stats Cards - Diperbaiki menjadi Flex-Col agar rapi */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold shrink-0">
-            <DollarSign size={22} />
+        <div className="p-4 lg:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col gap-3 overflow-hidden">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold shrink-0">
+            <DollarSign size={20} />
           </div>
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Total Pendapatan</p>
-            <h4 className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatRupiah(totalRevenue)}</h4>
+            <p className="text-[10px] lg:text-xs font-extrabold uppercase tracking-wider opacity-60 mb-0.5 line-clamp-1">Total Pendapatan</p>
+            <h4 className="text-lg lg:text-2xl font-black text-emerald-600 dark:text-emerald-400 truncate" title={formatRupiah(totalRevenue)}>
+              {formatRupiah(totalRevenue)}
+            </h4>
           </div>
         </div>
-        <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold shrink-0">
-            <Activity size={22} />
+        <div className="p-4 lg:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col gap-3 overflow-hidden">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold shrink-0">
+            <Activity size={20} />
           </div>
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Total DP Masuk</p>
-            <h4 className="text-xl sm:text-2xl font-black">{formatRupiah(totalDp)}</h4>
+            <p className="text-[10px] lg:text-xs font-extrabold uppercase tracking-wider opacity-60 mb-0.5 line-clamp-1">Total DP Masuk</p>
+            <h4 className="text-lg lg:text-2xl font-black truncate" title={formatRupiah(totalDp)}>
+              {formatRupiah(totalDp)}
+            </h4>
           </div>
         </div>
-        <div className="p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold shrink-0">
-            <FileText size={22} />
+        <div className="p-4 lg:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col gap-3 overflow-hidden">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold shrink-0">
+            <FileText size={20} />
           </div>
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-wider opacity-60">Sisa Piutang / Pelunasan</p>
-            <h4 className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400">{formatRupiah(totalRemaining)}</h4>
+            <p className="text-[10px] lg:text-xs font-extrabold uppercase tracking-wider opacity-60 mb-0.5 line-clamp-1">Sisa Piutang / Pelunasan</p>
+            <h4 className="text-lg lg:text-2xl font-black text-rose-600 dark:text-rose-400 truncate" title={formatRupiah(totalRemaining)}>
+              {formatRupiah(totalRemaining)}
+            </h4>
           </div>
         </div>
       </div>
@@ -152,82 +158,82 @@ export default function AdminTransactionsPage() {
           <p className="text-xs opacity-70 mt-1">Silakan buat nota pemesanan baru melalui tombol di atas.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {filteredTransactions.map((tx) => (
             <div 
               key={tx.id} 
               className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden flex flex-col justify-between transition-all duration-300 shadow-xl shadow-slate-900/5 hover:shadow-2xl hover:-translate-y-1"
             >
-              <div className="p-6 space-y-4">
+              <div className="p-5 lg:p-6 space-y-4">
                 {/* Top Badge & Date */}
                 <div className="flex justify-between items-center">
-                  <span className="px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shadow-sm">
+                  <span className="px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shadow-sm line-clamp-1 truncate max-w-[60%]">
                     {tx.serviceType}
                   </span>
-                  <span className="text-xs font-mono opacity-60">
+                  <span className="text-[10px] sm:text-xs font-mono opacity-60 shrink-0">
                     {new Date(tx.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                 </div>
 
                 {/* Customer Info */}
-                <div>
-                  <h3 className="text-xl font-black tracking-tight mb-0.5 flex items-center gap-2">
-                    <User size={16} className="text-indigo-500" /> {tx.customerName}
+                <div className="overflow-hidden">
+                  <h3 className="text-lg lg:text-xl font-black tracking-tight mb-0.5 flex items-center gap-2 truncate">
+                    <User size={16} className="text-indigo-500 shrink-0" /> <span className="truncate">{tx.customerName}</span>
                   </h3>
                   {tx.customerPhone && (
-                    <p className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1 mt-0.5">
-                      <Phone size={12} /> {tx.customerPhone}
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1 mt-0.5 truncate">
+                      <Phone size={12} className="shrink-0" /> {tx.customerPhone}
                     </p>
                   )}
-                  <p className="text-xs opacity-70 line-clamp-1 mt-1">
+                  <p className="text-xs opacity-70 mt-1 line-clamp-2">
                     Alamat: {tx.address}
                   </p>
                 </div>
 
                 {/* Details List */}
-                <div className="space-y-2.5 border-t border-slate-100 dark:border-slate-800 pt-4 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="opacity-70 flex items-center gap-1.5 font-medium">
+                <div className="space-y-2.5 border-t border-slate-100 dark:border-slate-800 pt-4 text-[11px] lg:text-xs">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="opacity-70 flex items-center gap-1.5 font-medium shrink-0">
                       <Navigation size={13} className="text-indigo-500" /> Armada:
                     </span>
-                    <span className="font-bold">{tx.carName}</span>
+                    <span className="font-bold truncate text-right">{tx.carName}</span>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="opacity-70 flex items-center gap-1.5 font-medium">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="opacity-70 flex items-center gap-1.5 font-medium shrink-0">
                       <MapPin size={13} className="text-indigo-500" /> Tujuan:
                     </span>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400 text-right">{tx.destination}</span>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400 text-right line-clamp-1">{tx.destination}</span>
                   </div>
 
                   {/* Driver Info if exists */}
                   {(tx.driverName || tx.driverPhone) && (
-                    <div className="flex justify-between items-center bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
-                      <span className="opacity-75 flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="flex justify-between items-center bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 gap-2">
+                      <span className="opacity-75 flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
                         <CarIcon size={13} /> Driver:
                       </span>
-                      <span className="font-bold text-emerald-700 dark:text-emerald-300 text-right">
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300 text-right truncate">
                         {tx.driverName || '-'} {tx.driverPhone ? `(${tx.driverPhone})` : ''}
                       </span>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center">
-                    <span className="opacity-70 flex items-center gap-1.5 font-medium">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="opacity-70 flex items-center gap-1.5 font-medium shrink-0">
                       <Calendar size={13} className="text-indigo-500" /> Jadwal:
                     </span>
-                    <span className="font-medium">{tx.travelDate} ({tx.durationDays || 1} Hari)</span>
+                    <span className="font-medium truncate text-right">{tx.travelDate} ({tx.durationDays || 1} Hari)</span>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="opacity-70 flex items-center gap-1.5 font-medium">
-                      <Clock size={13} className="text-indigo-500" /> Jam / Shift:
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="opacity-70 flex items-center gap-1.5 font-medium shrink-0">
+                      <Clock size={13} className="text-indigo-500" /> Jam/Shift:
                     </span>
-                    <span className="font-medium">{tx.shiftTime}</span>
+                    <span className="font-medium truncate text-right">{tx.shiftTime}</span>
                   </div>
 
                   {/* Financial Summary inside Card */}
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-950/40 p-3.5 rounded-2xl space-y-2">
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-950/40 p-3 lg:p-3.5 rounded-2xl space-y-2">
                     {tx.discountAmount && tx.discountAmount > 0 && (
                       <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
                         <span className="font-medium flex items-center gap-1"><Percent size={12} /> Diskon:</span>
@@ -251,20 +257,20 @@ export default function AdminTransactionsPage() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <Link 
                     href={`/admin/transactions/${tx.id}`}
-                    className="px-3.5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-2 lg:px-3.5 lg:py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                   >
                     <FileText size={14} /> Cetak
                   </Link>
                   <Link 
                     href={`/admin/transactions/edit/${tx.id}`}
-                    className="px-3.5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-2 lg:px-3.5 lg:py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                   >
                     <Edit3 size={14} /> Edit
                   </Link>
                 </div>
                 <button 
                   onClick={() => handleDelete(tx.id)}
-                  className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  className="px-3 py-2 lg:px-3.5 lg:py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                 >
                   <Trash2 size={14} /> Hapus
                 </button>
