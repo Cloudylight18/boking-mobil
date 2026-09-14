@@ -17,7 +17,7 @@ exports.registerAdmin = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Username sudah digunakan oleh akun lain!' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12); // Menggunakan salt rounds yang lebih aman (12)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const newAdmin = await prisma.user.create({
       data: {
@@ -34,7 +34,7 @@ exports.registerAdmin = async (req, res) => {
   }
 };
 
-// Fungsi Login Admin (Lengkap dengan Detektif & Keamanan Timing Attack)
+// Fungsi Login Admin
 exports.loginAdmin = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -43,17 +43,9 @@ exports.loginAdmin = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Username dan password harus diisi!' });
     }
 
-    console.log("=========================================");
-    console.log("👉 1. ADA REQUEST LOGIN MASUK");
-    console.log("👉 2. Username dari web :", `"${username}"`);
-
-    // Cari user di database
     const user = await prisma.user.findUnique({ where: { username } });
-    console.log("👉 4. Data dari database:", user ? "DITEMUKAN" : "KOSONG");
 
     if (!user) {
-      console.log("❌ GAGAL: Username tidak ada di Database!");
-      console.log("=========================================");
       return res.status(401).json({ status: 'error', message: 'Username atau password salah!' });
     }
 
@@ -61,7 +53,6 @@ exports.loginAdmin = async (req, res) => {
       return res.status(403).json({ status: 'error', message: 'Akses ditolak! Bukan Administrator.' });
     }
 
-    // Pengecekan password (mendukung hash bcrypt & plain text DBeaver)
     let isPasswordValid = false;
     if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
       isPasswordValid = await bcrypt.compare(password, user.password);
@@ -70,13 +61,8 @@ exports.loginAdmin = async (req, res) => {
     }
 
     if (!isPasswordValid) {
-      console.log("❌ GAGAL: Password salah!");
-      console.log("=========================================");
       return res.status(401).json({ status: 'error', message: 'Username atau password salah!' });
     }
-
-    console.log("✅ SUKSES: PASSWORD COCOK, LOGIN BERHASIL!");
-    console.log("=========================================");
     
     res.json({
       status: 'success',
@@ -95,7 +81,7 @@ exports.loginAdmin = async (req, res) => {
   }
 };
 
-// Fungsi Ambil Profil Admin (Otomatis buat default jika kosong agar tidak 404)
+// Fungsi Ambil Profil Admin
 exports.getProfile = async (req, res) => {
   try {
     let user = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
@@ -103,7 +89,6 @@ exports.getProfile = async (req, res) => {
       user = await prisma.user.findFirst();
     }
 
-    // Jika database benar-benar kosong, buatkan akun default otomatis agar tidak 404
     if (!user) {
       const hashedPassword = await bcrypt.hash('admin123', 12);
       user = await prisma.user.create({
@@ -132,24 +117,40 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// Fungsi Update Profil Admin (Username & Foto Avatar) - Aman & Anti-Crash
+// ==========================================
+// PERBAIKAN UTAMA DI SINI (UPDATE PROFILE)
+// ==========================================
 exports.updateProfile = async (req, res) => {
   try {
     const { id, username } = req.body;
     
-    let user = id ? await prisma.user.findUnique({ where: { id } }) : await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    let user = null;
 
+    // 1. Cari berdasarkan ID jika dikirim dan valid
+    if (id && id !== 'undefined' && id !== 'null') {
+      user = await prisma.user.findUnique({ where: { id: String(id) } });
+    }
+
+    // 2. Jika ID tidak ada atau user tidak ketemu, gunakan fallback otomatis cari user ber-role ADMIN pertama
     if (!user) {
-      // Bersihkan file jika terlanjur terupload oleh multer tapi user tidak valid
+      user = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    }
+
+    // 3. Jika masih kosong, ambil user pertama yang ada di database agar tidak pernah 404
+    if (!user) {
+      user = await prisma.user.findFirst();
+    }
+
+    // Jika database benar-benar kosong melompong
+    if (!user) {
       if (req.file) {
         try { fs.unlinkSync(req.file.path); } catch (err) {}
       }
-      return res.status(404).json({ status: 'error', message: 'User admin tidak ditemukan!' });
+      return res.status(404).json({ status: 'error', message: 'Tidak ada data user di dalam database!' });
     }
 
     let updateData = {};
     if (username && username.trim() !== '') {
-      // Cek apakah username sudah dipakai user lain
       const existingName = await prisma.user.findFirst({
         where: { username: username.trim(), NOT: { id: user.id } }
       });
@@ -166,7 +167,7 @@ exports.updateProfile = async (req, res) => {
     if (req.file) {
       const newImagePath = `/uploads/${req.file.filename}`;
       
-      // Hapus file gambar lama secara fisik jika ada untuk menghemat ruang server
+      // Hapus file gambar lama secara fisik jika ada
       const oldImage = user.image || user.profileImage;
       if (oldImage && oldImage.startsWith('/uploads/')) {
         const cleanPath = oldImage.replace(/^\/+/, '');
@@ -181,8 +182,8 @@ exports.updateProfile = async (req, res) => {
       }
 
       updateData.image = newImagePath;
-      // Jika skema prisma Anda menggunakan 'profileImage', sesuaikan di sini:
-      // updateData.profileImage = newImagePath; 
+      // Dukungan untuk skema prisma yang menggunakan profileImage
+      updateData.profileImage = newImagePath; 
     }
 
     const updatedUser = await prisma.user.update({
@@ -204,7 +205,6 @@ exports.updateProfile = async (req, res) => {
 
   } catch (error) {
     console.error("❌ ERROR UPDATE PROFILE:", error);
-    // Hapus file upload jika terjadi eror database agar server bersih
     if (req.file) {
       try { fs.unlinkSync(req.file.path); } catch (err) {}
     }
@@ -212,12 +212,18 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// Fungsi Update Password Admin (Khusus Ganti Sandi)
+// Fungsi Update Password Admin
 exports.updatePassword = async (req, res) => {
   try {
     const { id, currentPassword, newPassword } = req.body;
     
-    let user = id ? await prisma.user.findUnique({ where: { id } }) : await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    let user = null;
+    if (id && id !== 'undefined' && id !== 'null') {
+      user = await prisma.user.findUnique({ where: { id: String(id) } });
+    }
+    if (!user) {
+      user = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    }
 
     if (!user) {
       return res.status(404).json({ status: 'error', message: 'User admin tidak ditemukan!' });
