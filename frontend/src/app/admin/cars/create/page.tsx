@@ -31,7 +31,7 @@ export default function AdminCarCreatePage() {
   const [termInput, setTermInput] = useState('');
   const [terms, setTerms] = useState<string[]>([]);
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://103.134.154.77:5000';
 
   // OTOMATIS UPLOAD FOTO KE SERVER SAAT DIPILIH (Pre-Upload Workflow)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

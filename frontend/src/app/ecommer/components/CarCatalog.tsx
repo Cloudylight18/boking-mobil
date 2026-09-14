@@ -34,7 +34,7 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
   const { showLoader, hideLoader } = useLoading();
 
   // Mendapatkan Base URL dari environment variable atau fallback produksi Hostinger
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://steelblue-fox-791845.hostingersite.com';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://103.134.154.77:5000';
 
   useEffect(() => {
     const fetchCars = async () => {
