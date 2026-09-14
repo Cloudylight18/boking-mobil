@@ -18,7 +18,7 @@ export default function AdminSettingsPage() {
   const [isFetching, setIsFetching] = useState(true);
 
   // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan gambar profil
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://103.134.154.77:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.hitsbahtransport.com';
 
   useEffect(() => {
     fetchProfile();

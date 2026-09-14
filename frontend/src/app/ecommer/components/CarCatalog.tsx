@@ -34,7 +34,7 @@ export default function CarCatalog({ searchQuery, isDarkMode }: CatalogProps) {
   const { showLoader, hideLoader } = useLoading();
 
   // Mendapatkan Base URL dari environment variable atau fallback produksi Hostinger
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://103.134.154.77:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'hhttps://api.hitsbahtransport.com';
 
   useEffect(() => {
     const fetchCars = async () => {

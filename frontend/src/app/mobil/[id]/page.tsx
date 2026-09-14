@@ -60,7 +60,7 @@ export default function DetailMobilPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan gambar dan video
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://103.134.154.77:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.hitsbahtransport.com';
 
   useEffect(() => {
     if (!id) return;

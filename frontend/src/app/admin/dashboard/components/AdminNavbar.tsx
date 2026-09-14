@@ -21,7 +21,7 @@ export default function AdminNavbar({ isDarkMode, toggleDarkMode }: NavbarProps)
   const [adminImage, setAdminImage] = useState<string | null>(null);
 
   // Mendapatkan Base URL dari instance API atau environment variable untuk penanganan gambar profil
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://103.134.154.77:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'hhttps://api.hitsbahtransport.com';
 
   const isActive = (path: string) => pathname === path;
 

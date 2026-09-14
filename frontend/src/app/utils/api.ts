@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 export const API = axios.create({
-  baseURL: 'http://103.134.154.77:5000', // URL backend produksi Anda
-  timeout: 60000, // Timeout 60 detik untuk proses upload foto/video besar
+  baseURL: 'https://api.hitsbahtransport.com', 
+  timeout: 60000, 
 });
 
 // Helper untuk mengirim sinyal ke Global Loader

@@ -57,7 +57,7 @@ export default function AdminCarDetailPage() {
   const [activeVideoPopup, setActiveVideoPopup] = useState<string | null>(null);
 
   // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan file gambar/video
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://103.134.154.77:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'hhttps://api.hitsbahtransport.com';
 
   useEffect(() => {
     if (!id) return;
