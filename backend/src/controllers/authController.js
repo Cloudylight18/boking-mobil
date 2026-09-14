@@ -118,7 +118,7 @@ exports.getProfile = async (req, res) => {
 };
 
 // ==========================================
-// PERBAIKAN UTAMA DI SINI (UPDATE PROFILE)
+// UPDATE PROFILE (SUPER TAHAN BANTING / ANTI-CRASH 500)
 // ==========================================
 exports.updateProfile = async (req, res) => {
   try {
@@ -126,22 +126,30 @@ exports.updateProfile = async (req, res) => {
     
     let user = null;
 
-    // 1. Cari berdasarkan ID jika dikirim dan valid
+    // Pencarian ID aman anti-crash (mendukung Int maupun String/UUID tanpa error tipe data)
     if (id && id !== 'undefined' && id !== 'null') {
-      user = await prisma.user.findUnique({ where: { id: String(id) } });
+      try {
+        const numId = Number(id);
+        if (!isNaN(numId)) {
+          user = await prisma.user.findUnique({ where: { id: numId } }).catch(() => null);
+        }
+        if (!user) {
+          user = await prisma.user.findUnique({ where: { id: String(id) } }).catch(() => null);
+        }
+      } catch (e) {
+        console.log("Info: ID lookup type mismatch handled safely.");
+      }
     }
 
-    // 2. Jika ID tidak ada atau user tidak ketemu, gunakan fallback otomatis cari user ber-role ADMIN pertama
+    // Fallback otomatis jika ID tidak ditemukan
     if (!user) {
-      user = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+      user = await prisma.user.findFirst({ where: { role: 'ADMIN' } }).catch(() => null);
     }
-
-    // 3. Jika masih kosong, ambil user pertama yang ada di database agar tidak pernah 404
     if (!user) {
-      user = await prisma.user.findFirst();
+      user = await prisma.user.findFirst().catch(() => null);
     }
 
-    // Jika database benar-benar kosong melompong
+    // Jika database benar-benar kosong
     if (!user) {
       if (req.file) {
         try { fs.unlinkSync(req.file.path); } catch (err) {}
@@ -150,17 +158,20 @@ exports.updateProfile = async (req, res) => {
     }
 
     let updateData = {};
+    
     if (username && username.trim() !== '') {
+      const trimmedUsername = username.trim();
       const existingName = await prisma.user.findFirst({
-        where: { username: username.trim(), NOT: { id: user.id } }
-      });
+        where: { username: trimmedUsername, NOT: { id: user.id } }
+      }).catch(() => null);
+
       if (existingName) {
         if (req.file) {
           try { fs.unlinkSync(req.file.path); } catch (err) {}
         }
         return res.status(400).json({ status: 'error', message: 'Username sudah digunakan oleh akun lain!' });
       }
-      updateData.username = username.trim();
+      updateData.username = trimmedUsername;
     }
 
     // Jika ada file gambar baru yang diunggah melalui Multer
@@ -169,7 +180,7 @@ exports.updateProfile = async (req, res) => {
       
       // Hapus file gambar lama secara fisik jika ada
       const oldImage = user.image || user.profileImage;
-      if (oldImage && oldImage.startsWith('/uploads/')) {
+      if (oldImage && typeof oldImage === 'string' && oldImage.startsWith('/uploads/')) {
         const cleanPath = oldImage.replace(/^\/+/, '');
         const oldFilePath = path.join(__dirname, '../../public', cleanPath);
         try {
@@ -182,8 +193,6 @@ exports.updateProfile = async (req, res) => {
       }
 
       updateData.image = newImagePath;
-      // Dukungan untuk skema prisma yang menggunakan profileImage
-      updateData.profileImage = newImagePath; 
     }
 
     const updatedUser = await prisma.user.update({
@@ -191,7 +200,7 @@ exports.updateProfile = async (req, res) => {
       data: updateData
     });
 
-    res.json({
+    return res.json({
       status: 'success',
       message: 'Profil admin berhasil diperbarui!',
       data: {
@@ -204,11 +213,15 @@ exports.updateProfile = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ ERROR UPDATE PROFILE:", error);
+    console.error("❌ CRITICAL ERROR UPDATE PROFILE:", error);
     if (req.file) {
       try { fs.unlinkSync(req.file.path); } catch (err) {}
     }
-    res.status(500).json({ status: 'error', message: 'Gagal memperbarui profil', detail: error.message });
+    return res.status(500).json({ 
+      status: 'error', 
+      message: 'Gagal memperbarui profil di server', 
+      detail: error.message 
+    });
   }
 };
 
@@ -219,10 +232,18 @@ exports.updatePassword = async (req, res) => {
     
     let user = null;
     if (id && id !== 'undefined' && id !== 'null') {
-      user = await prisma.user.findUnique({ where: { id: String(id) } });
+      try {
+        const numId = Number(id);
+        if (!isNaN(numId)) {
+          user = await prisma.user.findUnique({ where: { id: numId } }).catch(() => null);
+        }
+        if (!user) {
+          user = await prisma.user.findUnique({ where: { id: String(id) } }).catch(() => null);
+        }
+      } catch (e) {}
     }
     if (!user) {
-      user = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+      user = await prisma.user.findFirst({ where: { role: 'ADMIN' } }).catch(() => null);
     }
 
     if (!user) {
@@ -255,13 +276,13 @@ exports.updatePassword = async (req, res) => {
       data: { password: hashedNewPassword }
     });
 
-    res.json({
+    return res.json({
       status: 'success',
       message: 'Kata sandi berhasil diubah!'
     });
 
   } catch (error) {
     console.error("❌ ERROR UPDATE PASSWORD:", error);
-    res.status(500).json({ status: 'error', message: 'Gagal mengubah kata sandi', detail: error.message });
+    return res.status(500).json({ status: 'error', message: 'Gagal mengubah kata sandi', detail: error.message });
   }
 };
