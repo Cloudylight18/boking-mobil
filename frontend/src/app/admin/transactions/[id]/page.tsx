@@ -27,8 +27,8 @@ interface TransactionItem {
   remainingPay: number;
   discountAmount?: number;
   serviceType: string;
-  notes?: string; // Menampung data catatan manual
-  status?: string; // Status transaksi (BERJALAN / SELESAI)
+  notes?: string; 
+  status?: string; 
   createdAt: string;
 }
 
@@ -49,7 +49,6 @@ export default function AdminTransactionDetailPage() {
     const fetchTransactionDetail = async () => {
       showLoader(); 
       try {
-        // Coba ambil langsung dari endpoint list atau detail spesifik
         const res = await API.get('/api/transactions');
         const list = res.data.data || res.data || [];
         const found = list.find((item: TransactionItem) => String(item.id) === String(id));
@@ -207,6 +206,7 @@ export default function AdminTransactionDetailPage() {
         ref={receiptRef}
         className="max-w-3xl mx-auto bg-white text-slate-900 p-6 sm:p-12 rounded-3xl shadow-2xl border border-slate-200 print:shadow-none print:border-none print:p-6 print:w-full overflow-hidden"
       >
+        {/* Header Nota dengan Perbaikan Layout Responsif Tablet/Laptop & Mobile */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6 mb-6">
           <div className="flex items-center gap-3">
             <img src="/icon.png" alt="Hitsbah Logo" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover shadow-md border border-slate-200 shrink-0" />
@@ -223,18 +223,19 @@ export default function AdminTransactionDetailPage() {
             </div>
           </div>
           
-          <div className="text-left sm:text-right w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end gap-2">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase bg-indigo-50 text-indigo-600 border border-indigo-200">
+          {/* Bagian Kanan Header: Service Type & Status */}
+          <div className="w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end gap-2 shrink-0">
+            <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
+              <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase bg-indigo-50 text-indigo-600 border border-indigo-200 text-center">
                 {tx.serviceType}
               </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
                 tx.status === 'SELESAI' ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
               }`}>
                 {tx.status || 'BERJALAN'}
               </span>
             </div>
-            <div className="mt-1 sm:mt-2 text-right">
+            <div className="text-right">
               <p className="text-xs text-slate-500 font-mono">ID: #{tx.id.slice(0, 8).toUpperCase()}</p>
               <p className="text-xs text-slate-500">Tgl: {new Date(tx.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
             </div>
@@ -338,7 +339,6 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Bagian Catatan Manual yang Dipastikan Merender nilai tx.notes */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 pt-6 border-t border-slate-200 text-xs text-slate-600 mb-8">
           <div>
             <p className="font-bold mb-1 text-slate-900">Catatan:</p>
