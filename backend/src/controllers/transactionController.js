@@ -18,12 +18,12 @@ exports.createTransaction = async (req, res) => {
   try {
     const { 
       customerName, 
-      customerPhone, // Ditambahkan
+      customerPhone, 
       address, 
       carName, 
       destination, 
-      driverName,    // Ditambahkan
-      driverPhone,   // Ditambahkan
+      driverName,    
+      driverPhone,   
       travelDate, 
       durationDays, 
       dateDetails, 
@@ -31,18 +31,20 @@ exports.createTransaction = async (req, res) => {
       discountAmount, 
       dpAmount, 
       remainingPay, 
-      serviceType 
+      serviceType,
+      notes,        // <-- [DITAMBAHKAN] Menangkap notes dari frontend
+      status        // <-- [DITAMBAHKAN] Menangkap status jika dikirim
     } = req.body;
 
     const newTransaction = await prisma.transaction.create({
       data: {
         customerName,
-        customerPhone: customerPhone || null, // Ditambahkan
+        customerPhone: customerPhone || null,
         address,
         carName,
         destination,
-        driverName: driverName || null,       // Ditambahkan
-        driverPhone: driverPhone || null,     // Ditambahkan
+        driverName: driverName || null,      
+        driverPhone: driverPhone || null,    
         travelDate,
         durationDays: parseInt(durationDays) || 1,
         dateDetails: dateDetails || null,
@@ -50,7 +52,9 @@ exports.createTransaction = async (req, res) => {
         discountAmount: parseInt(discountAmount) || 0,
         dpAmount: parseInt(dpAmount) || 0,
         remainingPay: parseInt(remainingPay) || 0,
-        serviceType
+        serviceType,
+        notes: notes || null,                // <-- [DITAMBAHKAN] Menyimpan notes ke database
+        status: status || 'BERJALAN'         // <-- [DITAMBAHKAN] Default status "BERJALAN"
       }
     });
 
@@ -73,12 +77,12 @@ exports.updateTransaction = async (req, res) => {
     const { id } = req.params;
     const { 
       customerName, 
-      customerPhone, // Ditambahkan
+      customerPhone, 
       address, 
       carName, 
       destination, 
-      driverName,    // Ditambahkan
-      driverPhone,   // Ditambahkan
+      driverName,    
+      driverPhone,   
       travelDate, 
       durationDays, 
       dateDetails, 
@@ -86,28 +90,38 @@ exports.updateTransaction = async (req, res) => {
       discountAmount, 
       dpAmount, 
       remainingPay, 
-      serviceType 
+      serviceType,
+      notes,        // <-- [DITAMBAHKAN] Menangkap notes saat update
+      status        // <-- [DITAMBAHKAN] Menangkap status saat update (bisa "BERJALAN" atau "SELESAI")
     } = req.body;
+
+    const updatePayload = {
+      customerName,
+      customerPhone: customerPhone || null,
+      address,
+      carName,
+      destination,
+      driverName: driverName || null,      
+      driverPhone: driverPhone || null,    
+      travelDate,
+      durationDays: parseInt(durationDays) || 1,
+      dateDetails: dateDetails || null,
+      shiftTime,
+      discountAmount: parseInt(discountAmount) || 0,
+      dpAmount: parseInt(dpAmount) || 0,
+      remainingPay: parseInt(remainingPay) || 0,
+      serviceType,
+      notes: notes || null                   // <-- [DITAMBAHKAN] Memperbarui notes
+    };
+
+    // Jika status dikirim dari frontend, sertakan ke dalam payload update
+    if (status) {
+      updatePayload.status = status;
+    }
 
     const updatedTransaction = await prisma.transaction.update({
       where: { id },
-      data: {
-        customerName,
-        customerPhone: customerPhone || null, // Ditambahkan
-        address,
-        carName,
-        destination,
-        driverName: driverName || null,       // Ditambahkan
-        driverPhone: driverPhone || null,     // Ditambahkan
-        travelDate,
-        durationDays: parseInt(durationDays) || 1,
-        dateDetails: dateDetails || null,
-        shiftTime,
-        discountAmount: parseInt(discountAmount) || 0,
-        dpAmount: parseInt(dpAmount) || 0,
-        remainingPay: parseInt(remainingPay) || 0,
-        serviceType
-      }
+      data: updatePayload
     });
 
     await prisma.car.updateMany({
@@ -130,9 +144,12 @@ exports.deleteTransaction = async (req, res) => {
 
     if (tx) {
       await prisma.transaction.delete({ where: { id } });
-      
+
       const activeOther = await prisma.transaction.findFirst({
-        where: { carName: { equals: tx.carName, mode: 'insensitive' } }
+        where: { 
+          carName: { equals: tx.carName, mode: 'insensitive' },
+          status: 'BERJALAN' // Hanya cek transaksi lain yang masih berjalan
+        }
       });
 
       if (!activeOther) {

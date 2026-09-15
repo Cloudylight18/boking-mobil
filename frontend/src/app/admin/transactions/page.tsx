@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigation, Search, DollarSign, Activity, Percent, Phone, Car as CarIcon } from 'lucide-react';
+import { Plus, Trash2, FileText, Edit3, Calendar, Clock, MapPin, User, Navigation, Search, DollarSign, Activity, Percent, Phone, Car as CarIcon, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import AdminLayout from '@/app/admin/dashboard/components/AdminLayout';
 import { formatRupiah } from '@/app/utils/formatRupiah';
@@ -25,6 +25,8 @@ interface TransactionItem {
   remainingPay: number;
   discountAmount?: number; 
   serviceType: string;
+  notes?: string;
+  status: string; // "BERJALAN" atau "SELESAI"
   createdAt: string;
 }
 
@@ -64,12 +66,23 @@ export default function AdminTransactionsPage() {
     }
   };
 
-  // Filter pencarian berdasarkan nama customer, armada, atau tujuan
-  const filteredTransactions = transactions.filter(tx => 
-    tx.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.carName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx.destination.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter pencarian dan Sorting otomatis berdasarkan jadwal keberangkatan terdekat (Ascending)
+  const filteredAndSortedTransactions = transactions
+    .filter(tx => 
+      tx.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.carName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.destination.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Mengurutkan berdasarkan tanggal terdekat di atas
+      const dateA = new Date(a.travelDate).getTime();
+      const dateB = new Date(b.travelDate).getTime();
+      
+      if (!isNaN(dateA) && !isNaN(dateB)) {
+        return dateA - dateB;
+      }
+      return 0;
+    });
 
   // Kalkulasi Statistik Keuangan Cepat
   const totalRevenue = transactions.reduce((acc, curr) => acc + (curr.dpAmount + curr.remainingPay), 0);
@@ -99,7 +112,7 @@ export default function AdminTransactionsPage() {
         </Link>
       </div>
 
-      {/* Quick Financial Stats Cards - Diperbaiki menjadi Flex-Col agar rapi */}
+      {/* Quick Financial Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="p-4 lg:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl shadow-slate-900/5 flex flex-col gap-3 overflow-hidden">
           <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold shrink-0">
@@ -151,7 +164,7 @@ export default function AdminTransactionsPage() {
       {/* Content Section */}
       {isLoading ? (
         <div className="text-center py-28 opacity-60 font-medium tracking-wide">Memuat data transaksi dari database...</div>
-      ) : filteredTransactions.length === 0 ? (
+      ) : filteredAndSortedTransactions.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900/40 text-slate-500 dark:text-slate-400">
           <FileText size={48} className="mx-auto mb-3 opacity-40 text-indigo-500" />
           <p className="font-bold text-base">Belum ada nota transaksi tercatat.</p>
@@ -159,19 +172,25 @@ export default function AdminTransactionsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {filteredTransactions.map((tx) => (
+          {filteredAndSortedTransactions.map((tx) => (
             <div 
               key={tx.id} 
               className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden flex flex-col justify-between transition-all duration-300 shadow-xl shadow-slate-900/5 hover:shadow-2xl hover:-translate-y-1"
             >
               <div className="p-5 lg:p-6 space-y-4">
-                {/* Top Badge & Date */}
-                <div className="flex justify-between items-center">
-                  <span className="px-3.5 py-1.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shadow-sm line-clamp-1 truncate max-w-[60%]">
+                {/* Top Service Badge & Status */}
+                <div className="flex justify-between items-center gap-2">
+                  <span className="px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shadow-sm line-clamp-1 truncate max-w-[55%]">
                     {tx.serviceType}
                   </span>
-                  <span className="text-[10px] sm:text-xs font-mono opacity-60 shrink-0">
-                    {new Date(tx.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  
+                  {/* Status Badge (BERJALAN / SELESAI) */}
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                    tx.status === 'SELESAI' 
+                      ? 'bg-slate-500/10 text-slate-500 border border-slate-500/20 dark:text-slate-400' 
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                  }`}>
+                    {tx.status || 'BERJALAN'}
                   </span>
                 </div>
 

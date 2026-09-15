@@ -92,7 +92,8 @@ model Transaction {
   dpAmount       Int      @default(0)
   remainingPay   Int      @default(0)
   serviceType    String   // Menyimpan jenis layanan yang dipilih
-  notes          String?  @db.Text    // <-- [BARU] Menyimpan catatan manual nota cetak
+  notes          String?  @db.Text    // Catatan manual nota cetak
+  status         String   @default("BERJALAN") // Pilihan status: "BERJALAN" atau "SELESAI"
   createdAt      DateTime @default(now())
 }
 
