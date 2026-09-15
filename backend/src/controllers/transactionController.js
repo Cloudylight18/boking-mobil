@@ -71,7 +71,7 @@ exports.createTransaction = async (req, res) => {
   }
 };
 
-// PUT: Update transaksi POS (Super Tahan Banting untuk Notes & Status)
+// PUT: Update transaksi POS
 exports.updateTransaction = async (req, res) => {
   try {
     const { id } = req.params;
@@ -111,11 +111,9 @@ exports.updateTransaction = async (req, res) => {
       dpAmount: parseInt(dpAmount) || 0,
       remainingPay: parseInt(remainingPay) || 0,
       serviceType,
-      // Memastikan notes tertangkap dengan benar meskipun berupa string teks
       notes: notes !== undefined ? (notes ? String(notes) : null) : null
     };
 
-    // Jika status dikirim dari frontend, sertakan ke dalam payload update
     if (status) {
       updatePayload.status = status;
     }
@@ -137,7 +135,7 @@ exports.updateTransaction = async (req, res) => {
   }
 };
 
-// DELETE: Hapus transaksi & kembalikan status mobil jadi AVAILABLE
+// DELETE: Hapus transaksi & kembalikan status mobil jadi AVAILABLE (Diperbaiki penutup kurawalnya)
 exports.deleteTransaction = async (req, res) => {
   try {
     const { id } = req.params;
