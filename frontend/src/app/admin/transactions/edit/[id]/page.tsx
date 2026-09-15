@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, FileText, Car as CarIcon } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, FileText, Car as CarIcon, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '../../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api';
-import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
+import { useLoading } from '@/app/context/LoadingContext';
 
 interface DestinationPrice {
   id: string;
@@ -34,7 +34,7 @@ export default function AdminTransactionEditPage() {
   const [cars, setCars] = useState<Car[]>([]);
 
   const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState(''); // State Nomor HP Customer
+  const [customerPhone, setCustomerPhone] = useState('');
   const [address, setAddress] = useState('');
   
   // State untuk Armada Mobil
@@ -61,8 +61,9 @@ export default function AdminTransactionEditPage() {
   const [durationDays, setDurationDays] = useState<string>('1'); 
   const [shiftTime, setShiftTime] = useState('');
 
-  // State Catatan Manual Transaksi
+  // State Catatan & Status Transaksi (Sinkronisasi Prisma Schema)
   const [notes, setNotes] = useState('');
+  const [status, setStatus] = useState('BERJALAN');
   
   const [basePrice, setBasePrice] = useState<number>(0);
   const [discountInput, setDiscountInput] = useState<string>('0'); 
@@ -86,25 +87,27 @@ export default function AdminTransactionEditPage() {
         
         const found = (txRes.data.data || []).find((item: any) => item.id === id);
         if (found) {
-          setCustomerName(found.customerName);
+          // Memuat data identitas pemesan & driver sebelumnya secara lengkap
+          setCustomerName(found.customerName || '');
           setCustomerPhone(found.customerPhone || '');
-          setAddress(found.address);
+          setAddress(found.address || '');
           setDriverName(found.driverName || '');
           setDriverPhone(found.driverPhone || '');
           setTravelDate(found.travelDate || '');
           setDurationDays(String(found.durationDays || 1));
-          setShiftTime(found.shiftTime);
+          setShiftTime(found.shiftTime || '');
           setDpAmount(found.dpAmount != null ? String(found.dpAmount) : '');
           setDiscountInput(String(found.discountAmount || 0)); 
           setNotes(found.notes || '');
+          setStatus(found.status || 'BERJALAN'); // Sinkronisasi status dari database
 
+          // Memuat Tipe Layanan Sebelumnya
           let isServiceCustom = false;
-
-          // Set Tipe Layanan Awal
           if (found.serviceType) {
-            if (found.serviceType.toLowerCase().includes('supir') || found.serviceType === 'WITH_DRIVER') {
+            const lowerService = found.serviceType.toLowerCase();
+            if (lowerService.includes('supir') || found.serviceType === 'WITH_DRIVER') {
               setCustomServiceTypeSelect('WITH_DRIVER');
-            } else if (found.serviceType.toLowerCase().includes('all-in') || found.serviceType === 'CARTER_ALL_IN') {
+            } else if (lowerService.includes('all-in') || lowerService.includes('all in') || found.serviceType === 'CARTER_ALL_IN') {
               setCustomServiceTypeSelect('CARTER_ALL_IN');
             } else {
               setIsCustomService(true);
@@ -113,13 +116,17 @@ export default function AdminTransactionEditPage() {
             }
           }
 
-          // Cek apakah mobil ada di list atau custom
-          const matchedCar = carList.find((c: Car) => c.name.toLowerCase() === found.carName.toLowerCase());
+          // Memuat data Armada & Rute sebelumnya dengan pencocokan aman
+          const matchedCar = carList.find((c: Car) => c.name.toLowerCase() === (found.carName || '').toLowerCase());
+          
           if (matchedCar) {
             setSelectedCarId(matchedCar.id);
             setIsCustomCar(false);
 
-            const matchedRoute = matchedCar.destinationPrices?.find((dp: DestinationPrice) => dp.destination.toLowerCase() === found.destination.toLowerCase());
+            const matchedRoute = matchedCar.destinationPrices?.find(
+              (dp: DestinationPrice) => dp.destination.toLowerCase() === (found.destination || '').toLowerCase()
+            );
+
             if (matchedRoute) {
               setSelectedDestPriceId(matchedRoute.id);
               setIsCustomDest(false);
@@ -129,19 +136,25 @@ export default function AdminTransactionEditPage() {
             } else {
               setIsCustomDest(true);
               setSelectedDestPriceId('LAINNYA');
-              setCustomDestName(found.destination);
-              const unitEst = found.durationDays ? Math.round(found.basePrice / found.durationDays) : found.basePrice;
+              setCustomDestName(found.destination || '');
+              
+              const totalSavedPrice = found.basePrice || 0;
+              const savedDays = found.durationDays || 1;
+              const unitEst = Math.round(totalSavedPrice / savedDays);
               setCustomPricePerDay(String(unitEst || ''));
             }
           } else {
             setIsCustomCar(true);
             setSelectedCarId('LAINNYA');
-            setCustomCarName(found.carName);
+            setCustomCarName(found.carName || '');
 
             setIsCustomDest(true);
             setSelectedDestPriceId('LAINNYA');
-            setCustomDestName(found.destination);
-            const unitEst = found.durationDays ? Math.round(found.basePrice / found.durationDays) : found.basePrice;
+            setCustomDestName(found.destination || '');
+
+            const totalSavedPrice = found.basePrice || 0;
+            const savedDays = found.durationDays || 1;
+            const unitEst = Math.round(totalSavedPrice / savedDays);
             setCustomPricePerDay(String(unitEst || ''));
           }
 
@@ -263,7 +276,6 @@ export default function AdminTransactionEditPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validasi Mobil
     let finalCarName = '';
     if (isCustomCar) {
       if (!customCarName.trim()) {
@@ -279,7 +291,6 @@ export default function AdminTransactionEditPage() {
       finalCarName = selectedCar.name;
     }
 
-    // Validasi Rute
     let finalDestName = '';
     if (isCustomDest) {
       if (!customDestName.trim() || !customPricePerDay) {
@@ -296,7 +307,6 @@ export default function AdminTransactionEditPage() {
       finalDestName = selectedDestObj.destination;
     }
 
-    // Validasi Tipe Layanan
     let finalServiceType = '';
     if (isCustomService) {
       if (!customServiceName.trim()) {
@@ -334,7 +344,8 @@ export default function AdminTransactionEditPage() {
         dpAmount: dpAmount === '' ? 0 : Number(dpAmount),
         remainingPay: remainingPay,
         serviceType: finalServiceType,
-        notes // Menyimpan catatan manual nota
+        notes,
+        status // <-- Mengirim status terbaru ke backend API
       });
 
       toast.success('Nota transaksi berhasil diperbarui!');
@@ -365,7 +376,7 @@ export default function AdminTransactionEditPage() {
             <ArrowLeft size={16} /> Kembali ke Daftar Transaksi
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">Edit Nota POS Travel</h1>
-          <p className="text-xs sm:text-sm opacity-70 mt-1">Perbarui rincian nota transaksi perjalanan, driver, kontak pelanggan, dan catatan.</p>
+          <p className="text-xs sm:text-sm opacity-70 mt-1">Perbarui rincian nota transaksi perjalanan, driver, kontak pelanggan, status, dan catatan.</p>
         </div>
 
         <form onSubmit={handleSubmit} className={`p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -409,6 +420,21 @@ export default function AdminTransactionEditPage() {
               onChange={(e) => setAddress(e.target.value)}
               className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
             />
+          </div>
+
+          {/* Status Transaksi (BERJALAN / SELESAI) */}
+          <div>
+            <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5 text-indigo-500">
+              <Activity size={14} /> Status Transaksi
+            </label>
+            <select 
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className={`w-full p-3.5 rounded-2xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+            >
+              <option value="BERJALAN">BERJALAN</option>
+              <option value="SELESAI">SELESAI</option>
+            </select>
           </div>
 
           {/* Informasi Driver / Supir */}
