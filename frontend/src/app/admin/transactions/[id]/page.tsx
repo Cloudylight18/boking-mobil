@@ -42,31 +42,35 @@ export default function AdminTransactionDetailPage() {
   const [tx, setTx] = useState<TransactionItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // State untuk input diskon (tipe string agar mulus di HP tanpa tombol panah)
   const [discountInput, setDiscountInput] = useState<string>('0');
 
   useEffect(() => {
     if (!id) return;
-    showLoader(); // Nyalakan global loading berputar logo Hitsbah
-    API.get('/api/transactions')
-      .then(res => {
-        const found = (res.data.data || []).find((item: TransactionItem) => item.id === id);
+    const fetchTransactionDetail = async () => {
+      showLoader(); 
+      try {
+        // Coba ambil langsung dari endpoint list atau detail spesifik
+        const res = await API.get('/api/transactions');
+        const list = res.data.data || res.data || [];
+        const found = list.find((item: TransactionItem) => String(item.id) === String(id));
+        
         if (found) {
           setTx(found);
           setDiscountInput(String(found.discountAmount || 0));
         } else {
           toast.error('Nota transaksi tidak ditemukan.');
         }
-      })
-      .catch(() => toast.error('Gagal memuat detail transaksi.'))
-      .finally(() => {
+      } catch (error) {
+        console.error(error);
+        toast.error('Gagal memuat detail transaksi.');
+      } finally {
         setIsLoading(false);
         hideLoader();
-      });
+      }
+    };
+    fetchTransactionDetail();
   }, [id]);
 
-  // Download gambar dengan lebar tetap agar optimal di HP maupun Desktop
   const handleDownloadImage = async () => {
     if (!receiptRef.current) return;
     setIsGenerating(true);
@@ -94,7 +98,6 @@ export default function AdminTransactionDetailPage() {
     }
   };
 
-  // Share gambar ke WhatsApp / Web Share API
   const handleShareImage = async () => {
     if (!receiptRef.current) return;
     setIsGenerating(true);
@@ -163,17 +166,15 @@ export default function AdminTransactionDetailPage() {
     );
   }
 
-  // Kalkulasi Keuangan Dinamis dengan Diskon Rupiah
   const discountVal = discountInput === '' ? 0 : Number(discountInput);
-  const normalPrice = tx.dpAmount + tx.remainingPay + (tx.discountAmount || 0); 
+  const normalPrice = (tx.dpAmount || 0) + (tx.remainingPay || 0) + (tx.discountAmount || 0); 
   const finalTotal = Math.max(0, normalPrice - discountVal);
-  const calculatedRemaining = Math.max(0, finalTotal - tx.dpAmount);
+  const calculatedRemaining = Math.max(0, finalTotal - (tx.dpAmount || 0));
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 py-6 sm:py-10 px-3 sm:px-4 font-sans print:bg-white print:p-0">
       <Toaster position="top-right" />
       
-      {/* Tombol Navigasi & Aksi Responsif HP */}
       <div className="max-w-3xl mx-auto mb-6 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 print:hidden">
         <Link href="/admin/transactions" className="inline-flex items-center justify-center sm:justify-start gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition font-medium">
           <ArrowLeft size={16} /> Kembali ke Daftar Transaksi
@@ -202,12 +203,10 @@ export default function AdminTransactionDetailPage() {
         </div>
       </div>
 
-      {/* Lembar Nota POS yang Responsif */}
       <div 
         ref={receiptRef}
         className="max-w-3xl mx-auto bg-white text-slate-900 p-6 sm:p-12 rounded-3xl shadow-2xl border border-slate-200 print:shadow-none print:border-none print:p-6 print:w-full overflow-hidden"
       >
-        {/* Header Nota dengan Logo di Kiri dan Info Kontak di Kanan */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6 mb-6">
           <div className="flex items-center gap-3">
             <img src="/icon.png" alt="Hitsbah Logo" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover shadow-md border border-slate-200 shrink-0" />
@@ -242,7 +241,6 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Informasi Pemesan & Detail Armada/Driver */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-sm">
           <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 border border-slate-200">
             <p className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 flex items-center gap-1">
@@ -292,7 +290,6 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Rincian Keuangan dengan Input Diskon Interaktif */}
         <div className="space-y-3 mb-6">
           <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Rincian Keuangan & Diskon</h4>
           <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-3 bg-slate-50 text-sm">
@@ -301,7 +298,6 @@ export default function AdminTransactionDetailPage() {
               <span className="font-bold text-slate-900">{formatRupiah(normalPrice)}</span>
             </div>
             
-            {/* Input Diskon Interaktif Ramah Mobile (Tanpa tombol panah) */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t border-slate-200/60 print:hidden">
               <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">
                 <Percent size={14} /> Masukkan Diskon (Rp):
@@ -320,7 +316,6 @@ export default function AdminTransactionDetailPage() {
               />
             </div>
 
-            {/* Tampilan Diskon dengan Nominal Rupiah */}
             <div className="flex justify-between text-emerald-600 font-medium">
               <span>Potongan Diskon Rupiah:</span>
               <span>(-) {formatRupiah(discountVal)}</span>
@@ -343,11 +338,13 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Bagian Catatan Manual & Hormat Kami */}
+        {/* Bagian Catatan Manual yang Dipastikan Merender nilai tx.notes */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 pt-6 border-t border-slate-200 text-xs text-slate-600 mb-8">
           <div>
             <p className="font-bold mb-1 text-slate-900">Catatan:</p>
-            <p className="max-w-xs whitespace-pre-line">{tx.notes && tx.notes.trim() !== '' ? tx.notes : '-'}</p>
+            <p className="max-w-xs whitespace-pre-line text-slate-800 font-medium">
+              {tx.notes && tx.notes.trim() !== '' ? tx.notes : '-'}
+            </p>
           </div>
           <div className="text-left sm:text-center w-full sm:w-auto">
             <p className="mb-2 font-medium">Hormat Kami,</p>
@@ -355,13 +352,11 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {/* Ucapan Terima Kasih di Tengah Paling Bawah */}
         <div className="pt-6 border-t border-slate-100 text-center">
           <p className="text-xs sm:text-sm font-extrabold text-indigo-600 tracking-wide">
             Terima kasih sudah mempercayai layanan kami Hitsbah Transport ✨
           </p>
         </div>
-
       </div>
     </div>
   );
