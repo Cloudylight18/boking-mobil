@@ -32,8 +32,8 @@ exports.createTransaction = async (req, res) => {
       dpAmount, 
       remainingPay, 
       serviceType,
-      notes,        // <-- [DITAMBAHKAN] Menangkap notes dari frontend
-      status        // <-- [DITAMBAHKAN] Menangkap status jika dikirim
+      notes,        
+      status        
     } = req.body;
 
     const newTransaction = await prisma.transaction.create({
@@ -53,8 +53,8 @@ exports.createTransaction = async (req, res) => {
         dpAmount: parseInt(dpAmount) || 0,
         remainingPay: parseInt(remainingPay) || 0,
         serviceType,
-        notes: notes || null,                // <-- [DITAMBAHKAN] Menyimpan notes ke database
-        status: status || 'BERJALAN'         // <-- [DITAMBAHKAN] Default status "BERJALAN"
+        notes: notes !== undefined && notes !== null ? String(notes) : null,
+        status: status || 'BERJALAN'         
       }
     });
 
@@ -71,7 +71,7 @@ exports.createTransaction = async (req, res) => {
   }
 };
 
-// PUT: Update transaksi POS
+// PUT: Update transaksi POS (Super Tahan Banting untuk Notes & Status)
 exports.updateTransaction = async (req, res) => {
   try {
     const { id } = req.params;
@@ -91,8 +91,8 @@ exports.updateTransaction = async (req, res) => {
       dpAmount, 
       remainingPay, 
       serviceType,
-      notes,        // <-- [DITAMBAHKAN] Menangkap notes saat update
-      status        // <-- [DITAMBAHKAN] Menangkap status saat update (bisa "BERJALAN" atau "SELESAI")
+      notes,        
+      status        
     } = req.body;
 
     const updatePayload = {
@@ -111,7 +111,8 @@ exports.updateTransaction = async (req, res) => {
       dpAmount: parseInt(dpAmount) || 0,
       remainingPay: parseInt(remainingPay) || 0,
       serviceType,
-      notes: notes || null                   // <-- [DITAMBAHKAN] Memperbarui notes
+      // Memastikan notes tertangkap dengan benar meskipun berupa string teks
+      notes: notes !== undefined ? (notes ? String(notes) : null) : null
     };
 
     // Jika status dikirim dari frontend, sertakan ke dalam payload update
@@ -148,7 +149,7 @@ exports.deleteTransaction = async (req, res) => {
       const activeOther = await prisma.transaction.findFirst({
         where: { 
           carName: { equals: tx.carName, mode: 'insensitive' },
-          status: 'BERJALAN' // Hanya cek transaksi lain yang masih berjalan
+          status: 'BERJALAN' 
         }
       });
 
