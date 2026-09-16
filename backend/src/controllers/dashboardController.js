@@ -16,7 +16,6 @@ exports.getDashboardStats = async (req, res) => {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0 - 11
 
-    // Struktur penampung pendapatan per bulan (Index 0 = Januari, 1 = Februari, dst.)
     const monthlyRevenueData = Array(12).fill(0);
 
     transactions.forEach(t => {
@@ -32,11 +31,9 @@ exports.getDashboardStats = async (req, res) => {
       const txYear = createdDate.getFullYear();
       const txMonth = createdDate.getMonth();
 
-      // Akumulasi berdasarkan tahun berjalan
       if (txYear === currentYear) {
         monthlyRevenueData[txMonth] += txTotal;
 
-        // Pendapatan bulan ini yang sedang berjalan
         if (txMonth === currentMonth) {
           currentMonthRevenue += txTotal;
         }
@@ -72,7 +69,6 @@ exports.getDashboardStats = async (req, res) => {
       console.error('Error visitor stats:', e);
     }
 
-    // 4. 5 Transaksi POS Terbaru
     const recentTransactions = transactions.slice(0, 5);
 
     res.status(200).json({
@@ -82,7 +78,7 @@ exports.getDashboardStats = async (req, res) => {
         totalDp,
         totalRemaining,
         currentMonthRevenue,
-        monthlyRevenueData, // Array pendapatan dari Januari s.d Desember tahun berjalan
+        monthlyRevenueData,
         totalTransactions: transactions.length,
         knowledgeCount,
         visitorStats,

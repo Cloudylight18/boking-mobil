@@ -42,6 +42,7 @@ app.use(helmet({
 app.use(cors({
   origin: [
     'https://hitsbahtransport.com',
+    'https://www.hitsbahtransport.com',
     'http://localhost:3000',
     'http://localhost:5173'
   ],

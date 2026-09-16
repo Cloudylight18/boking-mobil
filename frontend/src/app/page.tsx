@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './ecommer/components/navbar';
@@ -17,6 +17,21 @@ export default function PublicCatalog() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isHitsbahAIOpen, setIsHitsbahAIOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+
+  // Skrip otomatis untuk mencatat pengunjung website publik secara transparan
+  useEffect(() => {
+    const hasVisited = sessionStorage.getItem('hitsbah_visited');
+    if (!hasVisited) {
+      fetch('https://api.hitsbahtransport.com/api/dashboard/visit', {
+        method: 'POST',
+      })
+        .then((res) => res.json())
+        .then(() => {
+          sessionStorage.setItem('hitsbah_visited', 'true');
+        })
+        .catch((err) => console.error('Tracking error:', err));
+    }
+  }, []);
 
   return (
     <div className={`min-h-screen font-sans transition-colors duration-500 flex flex-col justify-between overflow-x-hidden ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
