@@ -22,6 +22,7 @@ const io = new Server(server, {
   cors: {
     origin: [
       'https://hitsbahtransport.com', // URL Frontend Online Hostinger
+      'https://www.hitsbahtransport.com',
       'http://localhost:3000',      // URL lokal Next.js/React
       'http://localhost:5173'       // URL lokal Vite
     ],
