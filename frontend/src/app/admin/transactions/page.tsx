@@ -23,7 +23,8 @@ interface TransactionItem {
   shiftTime: string;
   dpAmount: number;
   remainingPay: number;
-  discountAmount?: number; 
+  discountAmount?: number;
+  promoPercent?: number; // <-- Ditambahkan agar sinkron dengan skema baru
   serviceType: string;
   notes?: string;
   status: string; // "BERJALAN" atau "SELESAI"
@@ -68,24 +69,19 @@ export default function AdminTransactionsPage() {
 
   // Fungsi helper untuk menentukan status otomatis berdasarkan tanggal sekarang
   const getEffectiveStatus = (tx: TransactionItem) => {
-    // Jika status dari database sudah "SELESAI" secara manual, pertahankan
     if (tx.status === 'SELESAI') return 'SELESAI';
-
     if (!tx.travelDate) return tx.status || 'BERJALAN';
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset jam ke 00:00 untuk perbandingan tanggal yang akurat
+    today.setHours(0, 0, 0, 0);
 
     const startDate = new Date(tx.travelDate);
     startDate.setHours(0, 0, 0, 0);
 
     const duration = tx.durationDays && tx.durationDays > 0 ? tx.durationDays : 1;
-    
-    // Hitung tanggal berakhir sewa (Tanggal Berangkat + Durasi Hari - 1)
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + duration - 1);
 
-    // Jika tanggal hari ini sudah melewati tanggal berakhir sewa, otomatis "SELESAI"
     if (today > endDate) {
       return 'SELESAI';
     }
@@ -283,7 +279,9 @@ export default function AdminTransactionsPage() {
                     <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-950/40 p-3 lg:p-3.5 rounded-2xl space-y-2">
                       {tx.discountAmount && tx.discountAmount > 0 && (
                         <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
-                          <span className="font-medium flex items-center gap-1"><Percent size={12} /> Diskon:</span>
+                          <span className="font-medium flex items-center gap-1">
+                            <Percent size={12} /> Diskon {tx.promoPercent ? `(${tx.promoPercent}%)` : ''}:
+                          </span>
                           <span className="font-bold">(-) {formatRupiah(tx.discountAmount)}</span>
                         </div>
                       )}

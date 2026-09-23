@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MessageCircle, ArrowLeft, CheckCircle2, Moon, Sun, Navigation, Video, Maximize2, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Moon, Sun, Navigation, Video, Maximize2, X } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api'; 
-import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah berputar
+import { useLoading } from '@/app/context/LoadingContext'; 
 
 interface DestinationPrice {
   id: string;
@@ -59,16 +59,15 @@ export default function DetailMobilPage() {
   // Default awal dimulai dari mode Terang (Light Mode)
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Mendapatkan Base URL dari environment variable atau default Hostinger untuk penanganan gambar dan video
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.hitsbahtransport.com';
 
   useEffect(() => {
     if (!id) return;
     const fetchCarDetail = async () => {
-      showLoader(); // Nyalakan animasi loading logo Hitsbah berputar
+      showLoader();
       try {
         const response = await API.get('/api/cars');
-        const foundCar = response.data.data.find((item: CarDetail) => item.id === id);
+        const foundCar = response.data.data.find((item: CarDetail) => String(item.id) === String(id));
         if (foundCar) {
           setCar(foundCar);
           if (foundCar.images && foundCar.images.length > 0) {
@@ -76,21 +75,19 @@ export default function DetailMobilPage() {
           }
         }
       } catch (error) {
-        toast.error('Gagal memuat detail mobil');
+        toast.error('Gagal memuat detail armada');
       } finally {
         setIsLoading(false);
-        hideLoader(); // Matikan loading logo Hitsbah berputar
+        hideLoader();
       }
     };
     fetchCarDetail();
   }, [id, backendUrl]);
 
-  const handleBookingWa = (item: DestinationPrice) => {
+  // Handler ke Halaman Pendaftaran/Booking
+  const handleProceedToBooking = (item: DestinationPrice) => {
     if (!car) return;
-    const phone = '6289623021975'; // Nomor WhatsApp resmi Hitsbah Transport
-    const serviceLabel = item.serviceType === 'WITH_DRIVER' ? 'Mobil + Supir' : 'Carter All-in Bersih';
-    const text = `Halo Admin, saya ingin memesan mobil *${car.name}* dengan tujuan *${item.destination}* (${serviceLabel}) seharga ${formatRupiah(item.price)}. Mohon ketersediaannya.`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+    router.push(`/booking/${car.id}?destinationId=${item.id}`);
   };
 
   if (isLoading) {
@@ -121,7 +118,7 @@ export default function DetailMobilPage() {
     <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
       <Toaster position="top-right" />
 
-      {/* Top Navigation & Dark Mode Toggle - Mengarahkan kembali langsung ke Katalog dengan tab & anchor #katalog */}
+      {/* Top Navigation & Dark Mode Toggle */}
       <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
         <Link 
           href="/?tab=katalog#katalog" 
@@ -193,7 +190,6 @@ export default function DetailMobilPage() {
                       key={vid.id} 
                       className="group relative h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-950 shadow-xl"
                     >
-                      {/* Video Player dengan object-contain agar murni tidak terpotong */}
                       <video 
                         src={vidUrl} 
                         controls 
@@ -201,8 +197,6 @@ export default function DetailMobilPage() {
                         playsInline
                         className="w-full h-full object-contain bg-black" 
                       />
-                      
-                      {/* Tombol Klik Popup Perbesar Video */}
                       <button 
                         onClick={() => setActiveVideoPopup(vidUrl)}
                         className="absolute top-4 right-4 bg-slate-900/80 hover:bg-emerald-600 text-white p-3 rounded-2xl backdrop-blur-md transition-all duration-300 shadow-lg flex items-center gap-2 text-xs font-bold cursor-pointer opacity-90 group-hover:opacity-100"
@@ -223,16 +217,19 @@ export default function DetailMobilPage() {
           <div>
             <h1 className={`text-3xl font-extrabold mt-2 mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{car.name}</h1>
 
-            {/* Daftar Tarif Tujuan & Tombol Booking per Tujuan */}
+            {/* Daftar Tarif Tujuan & Tombol Lanjut ke Pendaftaran */}
             <div className={`border p-6 rounded-3xl mb-6 space-y-4 shadow-sm ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-500 flex items-center gap-1.5">
-                <Navigation size={14} /> Pilih Rute / Tujuan & Booking via WA:
+                <Navigation size={14} /> Pilih Rute / Tujuan & Lanjut Booking:
               </h4>
 
               {car.destinationPrices && car.destinationPrices.length > 0 ? (
-                <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
                   {car.destinationPrices.map((item) => (
-                    <div key={item.id} className={`p-4 rounded-2xl border transition flex flex-col gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-700/60' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div 
+                      key={item.id} 
+                      className={`p-4 rounded-2xl border transition flex flex-col gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-700/60' : 'bg-white border-slate-200 shadow-sm'}`}
+                    >
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-bold text-sm">{item.destination}</p>
@@ -241,14 +238,15 @@ export default function DetailMobilPage() {
                           </span>
                         </div>
                         <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
-                          {formatRupiah(item.price)}
+                          {formatRupiah(item.price)} <span className="text-[10px] font-normal opacity-70">/hari</span>
                         </span>
                       </div>
                       <button 
-                        onClick={() => handleBookingWa(item)}
-                        className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                        type="button"
+                        onClick={() => handleProceedToBooking(item)}
+                        className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md cursor-pointer hover:-translate-y-0.5"
                       >
-                        <MessageCircle size={15} /> Pesan Rute Ini via WhatsApp
+                        <CheckCircle2 size={16} /> Isi Formulir Pendaftaran Rute Ini
                       </button>
                     </div>
                   ))}
@@ -262,9 +260,10 @@ export default function DetailMobilPage() {
       </main>
 
       {/* Bagian Bawah: Tab Deskripsi & Syarat */}
-      <section className="max-w-7xl mx-auto px-6 mt-20">
+      <section className="max-w-7xl mx-auto px-6 mt-16">
         <div className={`border-b flex gap-8 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
           <button 
+            type="button"
             onClick={() => setActiveTab('description')}
             className={`pb-4 font-semibold text-sm transition-colors border-b-2 cursor-pointer ${
               activeTab === 'description' 
@@ -275,6 +274,7 @@ export default function DetailMobilPage() {
             Deskripsi & Kondisi
           </button>
           <button 
+            type="button"
             onClick={() => setActiveTab('terms')}
             className={`pb-4 font-semibold text-sm transition-colors border-b-2 cursor-pointer ${
               activeTab === 'terms' 
@@ -319,17 +319,14 @@ export default function DetailMobilPage() {
       {activeVideoPopup && (
         <div className="fixed inset-0 z-[99999] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
           <div className="relative w-full max-w-5xl h-[80vh] bg-black rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex items-center justify-center">
-            
-            {/* Tombol Close Popup */}
             <button 
+              type="button"
               onClick={() => setActiveVideoPopup(null)}
               className="absolute top-4 right-4 z-50 bg-slate-900/80 hover:bg-rose-600 text-white p-3 rounded-full transition-all duration-300 shadow-lg cursor-pointer"
               title="Tutup"
             >
               <X size={22} />
             </button>
-
-            {/* Video Player Fullscreen Murni */}
             <video 
               src={activeVideoPopup} 
               controls 

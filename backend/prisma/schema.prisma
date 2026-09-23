@@ -15,7 +15,7 @@ model User {
   id       String   @id @default(uuid())
   username String   @unique
   password String
-  image    String?  @db.Text // Foto profil admin
+  image    String?  @db.Text
   role     Role     @default(ADMIN)
 }
 
@@ -31,16 +31,27 @@ enum ServiceType {
 }
 
 model Car {
-  id                String                @id @default(uuid())
-  name              String
-  condition         String                @db.Text 
-  status            CarStatus             @default(AVAILABLE) 
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  images            CarImage[]
-  videos            CarVideo[]            // <-- Tabel video armada
-  destinationPrices CarDestinationPrice[] // Daftar harga fleksibel berdasarkan tujuan
-  terms             RentalTerm[]
+  id                  String                @id @default(uuid())
+  name                String
+  condition           String                @db.Text 
+  status              CarStatus             @default(AVAILABLE) 
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  images              CarImage[]
+  videos              CarVideo[]            // <-- Tabel video armada
+  destinationPrices   CarDestinationPrice[] // Daftar harga fleksibel berdasarkan tujuan
+  terms               RentalTerm[]
+  promos              Promo[]               // <-- Relasi promo unit
+}
+
+model Promo {
+  id              String   @id @default(uuid())
+  carId           String?
+  car             Car?     @relation(fields: [carId], references: [id], onDelete: Cascade)
+  title           String   // Nama/kode promo, e.g. "Promo Lebaran"
+  discountPercent Int      // Persentase diskon, e.g. 10 (berarti 10%)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
 }
 
 model CarDestinationPrice {
@@ -88,7 +99,8 @@ model Transaction {
   durationDays   Int      @default(1) // Lama waktu sewa dalam hari (misal: 3 hari)
   dateDetails    String?  @db.Text    // Rincian tanggal apa saja
   shiftTime      String
-  discountAmount Int      @default(0) // Menyimpan nominal diskon Rupiah
+  discountAmount Int      @default(0) // Menyimpan nominal diskon Rupiah hasil kalkulasi persentase
+  promoPercent   Int      @default(0) // Menyimpan persentase promo yang digunakan
   dpAmount       Int      @default(0)
   remainingPay   Int      @default(0)
   serviceType    String   // Menyimpan jenis layanan yang dipilih

@@ -2,13 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, FileText, Car as CarIcon } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Calendar, Clock, MapPin, Navigation, User, Home, Percent, Edit3, DollarSign, Briefcase, Phone, FileText, Car as CarIcon, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '../../dashboard/components/AdminNavbar';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import { API } from '@/app/utils/api';
-import { useLoading } from '@/app/context/LoadingContext'; // Menggunakan global loading logo Hitsbah
+import { useLoading } from '@/app/context/LoadingContext';
+
+interface PromoItem {
+  id: string;
+  title: string;
+  discountPercent: number;
+  isActive: boolean;
+}
 
 interface DestinationPrice {
   id: string;
@@ -22,6 +29,8 @@ interface Car {
   name: string;
   status: string;
   destinationPrices: DestinationPrice[];
+  promos?: PromoItem[];
+  images?: { imageUrl: string }[];
 }
 
 export default function AdminTransactionCreatePage() {
@@ -31,25 +40,21 @@ export default function AdminTransactionCreatePage() {
   const [cars, setCars] = useState<Car[]>([]);
 
   const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState(''); // State Nomor HP Customer
+  const [customerPhone, setCustomerPhone] = useState('');
   const [address, setAddress] = useState('');
   
-  // State untuk Armada Mobil
   const [selectedCarId, setSelectedCarId] = useState('');
   const [isCustomCar, setIsCustomCar] = useState(false);
   const [customCarName, setCustomCarName] = useState('');
 
-  // State untuk Driver / Supir
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
 
-  // State untuk Rute/Tujuan
   const [selectedDestPriceId, setSelectedDestPriceId] = useState('');
   const [isCustomDest, setIsCustomDest] = useState(false);
   const [customDestName, setCustomDestName] = useState('');
   const [customPricePerDay, setCustomPricePerDay] = useState<string>('');
   
-  // State untuk Tipe Layanan (Dengan Opsi Lainnya / Manual)
   const [customServiceTypeSelect, setCustomServiceTypeSelect] = useState('WITH_DRIVER');
   const [isCustomService, setIsCustomService] = useState(false);
   const [customServiceName, setCustomServiceName] = useState('');
@@ -58,11 +63,11 @@ export default function AdminTransactionCreatePage() {
   const [durationDays, setDurationDays] = useState<string>('1'); 
   const [shiftTime, setShiftTime] = useState('');
 
-  // State Catatan Manual Transaksi
   const [notes, setNotes] = useState('Harap melunasi sisa pembayaran sebelum perjalanan dimulai atau kepada supir bertugas.');
   
   const [basePrice, setBasePrice] = useState<number>(0);
-  const [discountInput, setDiscountInput] = useState<string>('0'); 
+  const [promoPercentInput, setPromoPercentInput] = useState<string>('0'); 
+  const [calculatedDiscountRp, setCalculatedDiscountRp] = useState<number>(0);
   const [dpAmount, setDpAmount] = useState<string>('');
   const [remainingPay, setRemainingPay] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,7 +85,6 @@ export default function AdminTransactionCreatePage() {
 
   const selectedCar = cars.find(c => c.id === selectedCarId);
 
-  // Handle Perubahan Pilihan Armada
   const handleCarChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (val === 'LAINNYA') {
@@ -88,15 +92,23 @@ export default function AdminTransactionCreatePage() {
       setSelectedCarId('');
       setIsCustomDest(true);
       setSelectedDestPriceId('LAINNYA');
+      setPromoPercentInput('0');
     } else {
       setIsCustomCar(false);
       setSelectedCarId(val);
       setSelectedDestPriceId('');
       setIsCustomDest(false);
+      const carObj = cars.find(c => c.id === val);
+      const activePromo = carObj?.promos?.find(p => p.isActive);
+      if (activePromo) {
+        setPromoPercentInput(String(activePromo.discountPercent));
+        toast.success(`Promo aktif "${activePromo.title}" (${activePromo.discountPercent}%) diterapkan otomatis!`);
+      } else {
+        setPromoPercentInput('0');
+      }
     }
   };
 
-  // Handle Perubahan Pilihan Rute
   const handleDestChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (val === 'LAINNYA') {
@@ -113,7 +125,6 @@ export default function AdminTransactionCreatePage() {
     }
   };
 
-  // Handle Perubahan Dropdown Tipe Layanan
   const handleServiceSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (val === 'LAINNYA') {
@@ -125,10 +136,8 @@ export default function AdminTransactionCreatePage() {
     }
   };
 
-  // Kalkulasi total harga otomatis secara real-time
   useEffect(() => {
     let unitPrice = 0;
-
     if (isCustomDest) {
       unitPrice = customPricePerDay === '' ? 0 : Number(customPricePerDay);
     } else if (selectedDestPriceId && selectedCar) {
@@ -138,31 +147,21 @@ export default function AdminTransactionCreatePage() {
 
     const daysNum = durationDays === '' ? 1 : Number(durationDays);
     const totalCalculatedPrice = unitPrice * daysNum;
-    
     setBasePrice(totalCalculatedPrice);
 
-    const discountVal = discountInput === '' ? 0 : Number(discountInput);
-    const finalPriceAfterDiscount = Math.max(0, totalCalculatedPrice - discountVal);
-    const dp = dpAmount === '' ? 0 : Number(dpAmount);
+    const percentVal = Number(promoPercentInput) || 0;
+    const discountRp = Math.round(totalCalculatedPrice * (percentVal / 100));
+    setCalculatedDiscountRp(discountRp);
 
+    const finalPriceAfterDiscount = Math.max(0, totalCalculatedPrice - discountRp);
+    const dp = dpAmount === '' ? 0 : Number(dpAmount);
     setRemainingPay(Math.max(0, finalPriceAfterDiscount - dp));
-  }, [selectedDestPriceId, selectedCar, dpAmount, durationDays, discountInput, isCustomDest, customPricePerDay]);
+  }, [selectedDestPriceId, selectedCar, dpAmount, durationDays, promoPercentInput, isCustomDest, customPricePerDay]);
 
   const handleDpChange = (val: string) => {
     const cleanVal = val.replace(/\D/g, '');
     setDpAmount(cleanVal);
-    
-    let unitPrice = 0;
-    if (isCustomDest) {
-      unitPrice = customPricePerDay === '' ? 0 : Number(customPricePerDay);
-    } else {
-      unitPrice = selectedCar?.destinationPrices.find(dp => dp.id === selectedDestPriceId)?.price || 0;
-    }
-
-    const daysNum = durationDays === '' ? 1 : Number(durationDays);
-    const currentBase = unitPrice * daysNum;
-    const discountVal = discountInput === '' ? 0 : Number(discountInput);
-    const finalPriceAfterDiscount = Math.max(0, currentBase - discountVal);
+    const finalPriceAfterDiscount = Math.max(0, basePrice - calculatedDiscountRp);
     const dp = cleanVal === '' ? 0 : Number(cleanVal);
     setRemainingPay(Math.max(0, finalPriceAfterDiscount - dp));
   };
@@ -183,7 +182,6 @@ export default function AdminTransactionCreatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validasi Mobil
     let finalCarName = '';
     if (isCustomCar) {
       if (!customCarName.trim()) {
@@ -199,7 +197,6 @@ export default function AdminTransactionCreatePage() {
       finalCarName = selectedCar.name;
     }
 
-    // Validasi Rute & Harga
     let finalDestName = '';
     if (isCustomDest) {
       if (!customDestName.trim() || !customPricePerDay) {
@@ -216,7 +213,6 @@ export default function AdminTransactionCreatePage() {
       finalDestName = selectedDestObj.destination;
     }
 
-    // Validasi Tipe Layanan
     let finalServiceType = '';
     if (isCustomService) {
       if (!customServiceName.trim()) {
@@ -250,24 +246,25 @@ export default function AdminTransactionCreatePage() {
         durationDays: daysNum,
         dateDetails: generateDateDetails(),
         shiftTime,
-        discountAmount: discountInput === '' ? 0 : Number(discountInput),
+        discountAmount: calculatedDiscountRp,
+        promoPercent: Number(promoPercentInput) || 0,
         dpAmount: dpAmount === '' ? 0 : Number(dpAmount),
         remainingPay: remainingPay,
         serviceType: finalServiceType,
-        notes // Menyimpan catatan manual nota
+        notes
       });
 
       toast.success('Nota transaksi POS berhasil dibuat!');
       setTimeout(() => router.push('/admin/transactions'), 1000);
-    } catch (error) {
-      toast.error('Gagal menyimpan transaksi.');
+    } catch (error: any) {
+      const errMsg = error.response?.data?.message || 'Gagal menyimpan transaksi (bentrok tanggal/bulan/tahun yang sama)';
+      toast.error(errMsg);
       setIsLoading(false);
       hideLoader();
     }
   };
 
-  const discountVal = discountInput === '' ? 0 : Number(discountInput);
-  const finalTotalNet = Math.max(0, basePrice - discountVal);
+  const finalTotalNet = Math.max(0, basePrice - calculatedDiscountRp);
   const daysNumDisplay = durationDays === '' ? 1 : Number(durationDays);
 
   return (
@@ -282,13 +279,11 @@ export default function AdminTransactionCreatePage() {
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">Buat Nota POS Travel & Rental</h1>
           <p className={`text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-            Catat pemesanan perjalanan lengkap dengan informasi driver, kontak pelanggan, rute, catatan manual, dan kalkulasi otomatis.
+            Catat pemesanan perjalanan lengkap info driver, promo persentase, bentrok tanggal anti-boncos, dan kalkulasi otomatis.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className={`p-6 sm:p-8 rounded-3xl border shadow-xl space-y-6 ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-          
-          {/* Identitas Customer & Nomor HP */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -331,7 +326,6 @@ export default function AdminTransactionCreatePage() {
             />
           </div>
 
-          {/* Informasi Driver / Supir */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-200 dark:border-slate-800">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -359,7 +353,6 @@ export default function AdminTransactionCreatePage() {
             </div>
           </div>
 
-          {/* Pemilihan Armada & Rute */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-200 dark:border-slate-800">
             <div className="space-y-3">
               <div>
@@ -373,14 +366,24 @@ export default function AdminTransactionCreatePage() {
                   className={`w-full p-3.5 rounded-2xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                 >
                   <option value="">-- Pilih Armada Mobil --</option>
-                  {cars.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} — [{c.status}]
-                    </option>
-                  ))}
+                  {cars.map((c) => {
+                    const hasPromo = c.promos?.some(p => p.isActive);
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {c.name} — [{c.status}] {hasPromo ? '🔥 [PROMO AKTIF]' : ''}
+                      </option>
+                    );
+                  })}
                   <option value="LAINNYA" className="font-bold text-indigo-600 dark:text-indigo-400">✨ Lainnya (Input Manual)</option>
                 </select>
               </div>
+
+              {selectedCar && selectedCar.promos && selectedCar.promos.some(p => p.isActive) && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                  <Tag size={14} className="shrink-0 text-amber-500" />
+                  <span>Promo aktif unit: <strong>{selectedCar.promos.find(p=>p.isActive)?.title} ({selectedCar.promos.find(p=>p.isActive)?.discountPercent}%)</strong></span>
+                </div>
+              )}
               
               {isCustomCar && (
                 <div className="animate-fadeIn p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20">
@@ -455,7 +458,6 @@ export default function AdminTransactionCreatePage() {
             </div>
           </div>
 
-          {/* Pemilihan Tipe Layanan */}
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -489,7 +491,6 @@ export default function AdminTransactionCreatePage() {
             )}
           </div>
 
-          {/* Kotak Kalkulator Tarif Utama */}
           <div className="p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-indigo-500 text-white shrink-0">
@@ -507,7 +508,6 @@ export default function AdminTransactionCreatePage() {
             </span>
           </div>
 
-          {/* Jadwal Perjalanan */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div>
               <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
@@ -560,24 +560,23 @@ export default function AdminTransactionCreatePage() {
             </div>
           )}
 
-          {/* Bagian Keuangan: Diskon, DP, dan Sisa Pelunasan */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-slate-200 dark:border-slate-800">
             <div>
-              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                <Percent size={14} /> Diskon / Potongan (Rp)
+              <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <Tag size={14} /> Diskon Promo (%)
               </label>
               <input 
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                value={discountInput}
+                value={promoPercentInput}
                 onFocus={(e) => e.target.select()}
-                onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => setPromoPercentInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="0"
                 className={`w-full p-3.5 rounded-2xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
               />
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-1">
-                Net Total: {formatRupiah(finalTotalNet)}
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-bold mt-1">
+                Potongan ({promoPercentInput || 0}%): {formatRupiah(calculatedDiscountRp)}
               </p>
             </div>
 
@@ -608,7 +607,11 @@ export default function AdminTransactionCreatePage() {
             </div>
           </div>
 
-          {/* Input Catatan Nota Manual */}
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex justify-between items-center text-sm font-bold text-emerald-700 dark:text-emerald-300">
+            <span>Net Total Setelah Diskon Promo ({promoPercentInput || 0}%):</span>
+            <span>{formatRupiah(finalTotalNet)}</span>
+          </div>
+
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
             <label className="block text-xs font-extrabold uppercase mb-2 opacity-75 flex items-center gap-1.5">
               <FileText size={14} className="text-indigo-500" /> Catatan Nota (Tampil di Lembar Cetak)

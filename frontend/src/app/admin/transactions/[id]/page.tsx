@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Printer, Download, Share2, Percent, MapPin, MessageCircle, Phone, User, Car as CarIcon } from 'lucide-react';
+import { ArrowLeft, Printer, Download, Share2, MapPin, MessageCircle, Phone, User, Car as CarIcon, Tag } from 'lucide-react';
 import { formatRupiah } from '@/app/utils/formatRupiah';
 import toast, { Toaster } from 'react-hot-toast';
 import * as htmlToImage from 'html-to-image';
@@ -26,6 +26,7 @@ interface TransactionItem {
   dpAmount: number;
   remainingPay: number;
   discountAmount?: number;
+  promoPercent?: number;
   serviceType: string;
   notes?: string; 
   status?: string; 
@@ -35,14 +36,12 @@ interface TransactionItem {
 export default function AdminTransactionDetailPage() {
   const params = useParams();
   const id = params?.id;
-  const router = useRouter();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { showLoader, hideLoader } = useLoading();
 
   const [tx, setTx] = useState<TransactionItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [discountInput, setDiscountInput] = useState<string>('0');
 
   useEffect(() => {
     if (!id) return;
@@ -52,10 +51,8 @@ export default function AdminTransactionDetailPage() {
         const res = await API.get('/api/transactions');
         const list = res.data.data || res.data || [];
         const found = list.find((item: TransactionItem) => String(item.id) === String(id));
-        
         if (found) {
           setTx(found);
-          setDiscountInput(String(found.discountAmount || 0));
         } else {
           toast.error('Nota transaksi tidak ditemukan.');
         }
@@ -78,10 +75,7 @@ export default function AdminTransactionDetailPage() {
       const dataUrl = await htmlToImage.toPng(receiptRef.current, {
         quality: 0.95,
         pixelRatio: 2,
-        style: {
-          width: '768px',
-          margin: '0 auto',
-        }
+        style: { width: '768px', margin: '0 auto' }
       });
       const link = document.createElement('a');
       link.download = `Nota-POS-${tx?.customerName || 'Transaksi'}.png`;
@@ -89,7 +83,6 @@ export default function AdminTransactionDetailPage() {
       link.click();
       toast.success('Nota berhasil diunduh sebagai gambar!');
     } catch (error) {
-      console.error(error);
       toast.error('Gagal mengunduh gambar nota.');
     } finally {
       setIsGenerating(false);
@@ -104,47 +97,34 @@ export default function AdminTransactionDetailPage() {
     try {
       const blob = await htmlToImage.toBlob(receiptRef.current, {
         pixelRatio: 2,
-        style: {
-          width: '768px',
-          margin: '0 auto',
-        }
+        style: { width: '768px', margin: '0 auto' }
       });
-
       if (!blob) {
         toast.error('Gagal memproses gambar.');
         setIsGenerating(false);
         hideLoader();
         return;
       }
-
       const file = new File([blob], `Nota-${tx?.customerName || 'Transaksi'}.png`, { type: 'image/png' });
-
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: 'Nota Transaksi Hitsbah Transport',
-            text: `Berikut adalah rincian nota transaksi perjalanan untuk ${tx?.customerName}.`,
-          });
-          setIsGenerating(false);
-          hideLoader();
-          return;
-        } catch (shareErr) {
-          console.log(shareErr);
-        }
+        await navigator.share({
+          files: [file],
+          title: 'Nota Transaksi Hitsbah Transport',
+          text: `Berikut adalah rincian nota transaksi perjalanan untuk ${tx?.customerName}.`,
+        });
+        setIsGenerating(false);
+        hideLoader();
+        return;
       }
-
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `Nota-${tx?.customerName || 'Transaksi'}.png`;
       link.click();
-
       const waText = `Halo *${tx?.customerName}*, berikut adalah rincian nota transaksi perjalanan Anda di Hitsbah Transport. Terima kasih!`;
       window.open(`https://wa.me/?text=${encodeURIComponent(waText)}`, '_blank');
       toast.success('Gambar diunduh dan diarahkan ke WhatsApp.');
     } catch (error) {
-      console.error(error);
       toast.error('Gagal membagikan gambar.');
     } finally {
       setIsGenerating(false);
@@ -165,8 +145,8 @@ export default function AdminTransactionDetailPage() {
     );
   }
 
-  const discountVal = discountInput === '' ? 0 : Number(discountInput);
   const normalPrice = (tx.dpAmount || 0) + (tx.remainingPay || 0) + (tx.discountAmount || 0); 
+  const discountVal = tx.discountAmount || 0;
   const finalTotal = Math.max(0, normalPrice - discountVal);
   const calculatedRemaining = Math.max(0, finalTotal - (tx.dpAmount || 0));
 
@@ -175,38 +155,23 @@ export default function AdminTransactionDetailPage() {
       <Toaster position="top-right" />
       
       <div className="max-w-3xl mx-auto mb-6 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 print:hidden">
-        <Link href="/admin/transactions" className="inline-flex items-center justify-center sm:justify-start gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition font-medium">
+        <Link href="/admin/transactions" className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 transition font-medium">
           <ArrowLeft size={16} /> Kembali ke Daftar Transaksi
         </Link>
         <div className="grid grid-cols-3 sm:flex items-center gap-2">
-          <button 
-            onClick={handleDownloadImage}
-            disabled={isGenerating}
-            className="px-3 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer disabled:opacity-50"
-          >
-            <Download size={15} /> <span className="hidden xs:inline">Download</span>
+          <button onClick={handleDownloadImage} disabled={isGenerating} className="px-3 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer disabled:opacity-50">
+            <Download size={15} /> Download
           </button>
-          <button 
-            onClick={handleShareImage}
-            disabled={isGenerating}
-            className="px-3 sm:px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer disabled:opacity-50"
-          >
+          <button onClick={handleShareImage} disabled={isGenerating} className="px-3 sm:px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer disabled:opacity-50">
             <Share2 size={15} /> WA
           </button>
-          <button 
-            onClick={() => window.print()}
-            className="px-3 sm:px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer"
-          >
+          <button onClick={() => window.print()} className="px-3 sm:px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer">
             <Printer size={15} /> Cetak
           </button>
         </div>
       </div>
 
-      <div 
-        ref={receiptRef}
-        className="max-w-3xl mx-auto bg-white text-slate-900 p-6 sm:p-12 rounded-3xl shadow-2xl border border-slate-200 print:shadow-none print:border-none print:p-6 print:w-full overflow-hidden"
-      >
-        {/* Header Nota dengan Perbaikan Layout Responsif Tablet/Laptop & Mobile */}
+      <div ref={receiptRef} className="max-w-3xl mx-auto bg-white text-slate-900 p-6 sm:p-12 rounded-3xl shadow-2xl border border-slate-200 print:shadow-none print:border-none print:p-6 print:w-full overflow-hidden">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-6 mb-6">
           <div className="flex items-center gap-3">
             <img src="/icon.png" alt="Hitsbah Logo" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover shadow-md border border-slate-200 shrink-0" />
@@ -223,7 +188,6 @@ export default function AdminTransactionDetailPage() {
             </div>
           </div>
           
-          {/* Bagian Kanan Header: Service Type & Status */}
           <div className="w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end gap-2 shrink-0">
             <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
               <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase bg-indigo-50 text-indigo-600 border border-indigo-200 text-center">
@@ -292,35 +256,24 @@ export default function AdminTransactionDetailPage() {
         </div>
 
         <div className="space-y-3 mb-6">
-          <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Rincian Keuangan & Diskon</h4>
+          <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Rincian Keuangan & Promo</h4>
           <div className="p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-3 bg-slate-50 text-sm">
             <div className="flex justify-between items-center text-slate-700">
               <span>Tarif Normal ({tx.durationDays} Hari):</span>
               <span className="font-bold text-slate-900">{formatRupiah(normalPrice)}</span>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t border-slate-200/60 print:hidden">
-              <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">
-                <Percent size={14} /> Masukkan Diskon (Rp):
-              </span>
-              <input 
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={discountInput}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, ''); 
-                  setDiscountInput(val);
-                }}
-                placeholder="0"
-                className="w-full sm:w-48 px-3 py-2 rounded-xl text-sm font-bold border border-slate-300 dark:border-slate-700 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-right"
-              />
-            </div>
-
-            <div className="flex justify-between text-emerald-600 font-medium">
-              <span>Potongan Diskon Rupiah:</span>
-              <span>(-) {formatRupiah(discountVal)}</span>
-            </div>
+            {tx.promoPercent && tx.promoPercent > 0 ? (
+              <div className="flex justify-between text-amber-600 font-medium">
+                <span className="flex items-center gap-1"><Tag size={13}/> Diskon Promo ({tx.promoPercent}%):</span>
+                <span>(-) {formatRupiah(discountVal)}</span>
+              </div>
+            ) : discountVal > 0 ? (
+              <div className="flex justify-between text-amber-600 font-medium">
+                <span>Potongan Diskon Rupiah:</span>
+                <span>(-) {formatRupiah(discountVal)}</span>
+              </div>
+            ) : null}
 
             <div className="flex justify-between items-center text-slate-700 pt-2 border-t border-slate-200/60">
               <span className="font-semibold">Total Setelah Diskon:</span>
