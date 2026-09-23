@@ -84,10 +84,10 @@ export default function DetailMobilPage() {
     fetchCarDetail();
   }, [id, backendUrl]);
 
-  // Handler ke Halaman Pendaftaran/Booking
+  // Handler ke Halaman Pendaftaran/Booking (disesuaikan ke folder /boking_mobil)
   const handleProceedToBooking = (item: DestinationPrice) => {
     if (!car) return;
-    router.push(`/booking/${car.id}?destinationId=${item.id}`);
+    router.push(`/boking_mobil/${car.id}?destinationId=${item.id}`);
   };
 
   if (isLoading) {
